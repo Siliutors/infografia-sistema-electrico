@@ -158,6 +158,7 @@ tr[data-c]{cursor:pointer}
           <button id="zout" title="Alejar">−</button>
           <button id="zreset" title="Vista completa">⤢</button>
           <button id="zest" title="Mostrar u ocultar las UPs con ubicación estimada (centroide de sus UFs por comunidad)">◌ estimadas</button>
+          <button id="zlbl" title="Mostrar u ocultar los códigos de las UPs (aparecen más al hacer zoom)">🏷 códigos</button>
           <button id="expng" title="Descargar la vista actual del mapa como imagen PNG">🖼 PNG</button>
           <button id="expdf" title="Exportar a PDF mediante el diálogo de impresión">🖨 PDF</button>
         </div>
@@ -314,15 +315,13 @@ document.getElementById('tiles').innerHTML = [
 /* marcadores */
 const gU = document.getElementById('ups'), gS = document.getElementById('slbl');
 const locRows = rows.filter(r => locSet.has(r.c)).sort((a, b) => b.mw - a.mw);
-let svg = '', ring = '', lbl = '';
+let svg = '', ring = '';
 for (const r of locRows.slice().reverse()) {
   const rad = R(r.mw);
   svg += `<circle class="up" data-c="${r.c}" data-r0="${rad}" cx="${r.x}" cy="${r.y}" r="${rad}" fill="${COL[r.t]}"/>`;
   if (r.multi) ring += `<circle class="multi-ring" data-r0="${(rad + 2.2).toFixed(1)}" cx="${r.x}" cy="${r.y}" r="${rad + 2.2}"/>`;
 }
-for (const r of locRows.slice(0, 22))
-  lbl += `<text class="slbl" x="${r.x + R(r.mw) + 2}" y="${r.y + 2.5}">${r.c}</text>`;
-gU.innerHTML = svg + ring; gS.innerHTML = lbl;
+gU.innerHTML = svg + ring;
 
 /* UPs con ubicación estimada (>=10 MW dibujadas; todas seleccionables desde la tabla) */
 const gE = document.getElementById('este');
@@ -364,6 +363,7 @@ function applyZoom() {
   const nlist = Object.values(DATA.nodes);
   nds.forEach((el, i) => { if (nlist[i]) el.setAttribute('transform', `translate(${nlist[i][0]},${nlist[i][1]}) scale(${mk.toFixed(3)})`); });
   renderUFmarks();
+  renderLabels();
 }
 function zoomBy(f, px, py) {
   if (px === undefined) { px = VBW / 2; py = VBH / 2; }
@@ -395,14 +395,66 @@ map.addEventListener('pointermove', e => {
   VP.setAttribute('transform', `translate(${ztx.toFixed(1)},${zty.toFixed(1)}) scale(${zk.toFixed(3)})`);
 });
 map.addEventListener('pointerup', e => {
-  if (panS && panS.moved) didPan = true;
+  if (panS && panS.moved) { didPan = true; renderLabels(); }
   panS = null; map.classList.remove('panning');
 });
 document.getElementById('zin').onclick = () => zoomBy(1.4);
 document.getElementById('zout').onclick = () => zoomBy(0.72);
 document.getElementById('zreset').onclick = zoomReset;
 
+/* ---- etiquetas dinámicas de códigos UP (progresivas con el zoom, sin solapes) ---- */
+let showLbl = true, okSetG = null;
+const lblCand = [
+  ...locRows.map(r => ({r, x: r.x, y: r.y, r0: R(r.mw), s: r.mw, e: 0})),
+  ...estRows.map(r => ({r, x: r.ex, y: r.ey, r0: Re(r.mw), s: r.mw * 0.25, e: 1}))
+].sort((a, b) => b.s - a.s);
+function renderLabels() {
+  if (!showLbl) { gS.innerHTML = ''; return; }
+  const fsScr = 7.2 * Math.pow(zk, 0.25);   /* tamaño del texto en px de pantalla */
+  const fsW = 7.2 * Math.pow(zk, -0.75);    /* tamaño en unidades de mundo */
+  const grid = new Map(), CW = 90, CH = 26;
+  const collide = (x, y, w, h) => {
+    for (let cx = Math.floor(x / CW); cx <= Math.floor((x + w) / CW); cx++)
+      for (let cy = Math.floor(y / CH); cy <= Math.floor((y + h) / CH); cy++) {
+        const lst = grid.get(cx + '_' + cy);
+        if (lst) for (const b of lst)
+          if (x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]) return true;
+      }
+    return false;
+  };
+  const put = (x, y, w, h) => {
+    const b = [x, y, w, h];
+    for (let cx = Math.floor(x / CW); cx <= Math.floor((x + w) / CW); cx++)
+      for (let cy = Math.floor(y / CH); cy <= Math.floor((y + h) / CH); cy++) {
+        const k2 = cx + '_' + cy;
+        if (!grid.has(k2)) grid.set(k2, []);
+        grid.get(k2).push(b);
+      }
+  };
+  let out = '', n = 0;
+  for (const c of lblCand) {
+    if (n >= 320) break;
+    if (c.e && !showEst) continue;
+    if (okSetG && !okSetG.has(c.r.c)) continue;
+    const sx = ztx + zk * c.x, sy = zty + zk * c.y;
+    if (sx < -30 || sx > VBW + 10 || sy < -10 || sy > VBH + 10) continue;
+    const offX = c.r0 * Math.pow(zk, 0.4) + 2.5;
+    const w = c.r.c.length * fsScr * 0.64 + 3, h = fsScr * 1.15;
+    const bx = sx + offX, by = sy - h / 2;
+    if (collide(bx - 2, by - 1, w + 4, h + 2)) continue;
+    put(bx - 2, by - 1, w + 4, h + 2);
+    out += `<text class="slbl" x="${(c.x + offX / zk).toFixed(1)}" y="${(c.y + fsW * 0.35).toFixed(1)}">${c.r.c}</text>`;
+    n++;
+  }
+  gS.innerHTML = out;
+}
+document.getElementById('zlbl').onclick = () => {
+  showLbl = !showLbl; renderLabels();
+  document.getElementById('zlbl').style.opacity = showLbl ? 1 : .45;
+};
+
 renderEst();
+renderLabels();
 
 /* ---- exportación ---- */
 document.getElementById('expdf').onclick = () => window.print();
@@ -490,6 +542,8 @@ function apply() {
   cnt.textContent = `${fmt(shown.length)} de ${fmt(rows.length)} UPs` + (shown.length > 500 ? ' (mostrando las 500 mayores — afine la búsqueda)' : '') + ' · 📍 en el mapa · ◈ ubicación estimada · ◇ cartera distribuida';
   const okSet = new Set(shown.map(r => r.c));
   document.querySelectorAll('.up').forEach(el => el.classList.toggle('dim', !okSet.has(el.dataset.c)));
+  okSetG = okSet;
+  if (typeof renderLabels === 'function' && typeof zk !== 'undefined') renderLabels();
 }
 q.oninput = apply; zrsel.onchange = apply; apply();
 
