@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infografía · Unidades de programación del sistema eléctrico español</title>
+<style>
+:root{
+  color-scheme: light dark;
+  --surface-1:#fcfcfb; --surface-2:#f1f0ec; --page:#f9f9f7;
+  --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --l400:#52514e; --l220:#a8a69e; --sea:#eef1f2;
+  --s0:#2a78d6; --s1:#1baf7a; --s2:#eda100; --s3:#008300;
+  --s4:#4a3aa7; --s5:#e34948; --s6:#e87ba4; --s7:#eb6834;
+}
+:root[data-theme="light"]{ color-scheme: light }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --surface-1:#1a1a19; --surface-2:#2e2e2b; --page:#0d0d0d;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --grid:#3a3a37; --axis:#4a4a46; --ring:rgba(255,255,255,.10);
+    --l400:#c3c2b7; --l220:#6d6c64; --sea:#0f1011;
+    --s0:#3987e5; --s1:#199e70; --s2:#c98500; --s3:#008300;
+    --s4:#9085e9; --s5:#e66767; --s6:#d55181; --s7:#d95926;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --surface-2:#2e2e2b; --page:#0d0d0d;
+  --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+  --grid:#3a3a37; --axis:#4a4a46; --ring:rgba(255,255,255,.10);
+  --l400:#c3c2b7; --l220:#6d6c64; --sea:#0f1011;
+  --s0:#3987e5; --s1:#199e70; --s2:#c98500; --s3:#008300;
+  --s4:#9085e9; --s5:#e66767; --s6:#d55181; --s7:#d95926;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink-1);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.viz-root{max-width:1720px;margin:0 auto;padding:20px 22px 40px}
+h1{font-size:21px;margin:0 0 2px;font-weight:650}
+.hdr{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}
+#themebtn{flex:none;background:var(--surface-1);color:var(--ink-1);border:1px solid var(--axis);
+  border-radius:7px;padding:6px 12px;font:13px system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#themebtn:hover{border-color:var(--ink-2)}
+.sub{color:var(--ink-2);font-size:12.5px;margin:0 0 14px}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.tile{background:var(--surface-1);border:1px solid var(--ring);border-radius:8px;padding:8px 14px;min-width:120px}
+.tile b{display:block;font-size:20px;font-weight:650}
+.tile span{font-size:11px;color:var(--ink-2)}
+.layout{display:grid;grid-template-columns:minmax(640px,1.55fr) minmax(420px,1fr);gap:16px;align-items:start}
+.card{background:var(--surface-1);border:1px solid var(--ring);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.card h2{font-size:12.5px;margin:0 0 8px;font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2)}
+svg{display:block;width:100%;height:auto}
+#map text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.mapbg{fill:var(--sea)}
+.reg{fill:var(--surface-2);stroke:var(--grid);stroke-width:.7}
+.reg-can{fill:var(--surface-2);stroke:var(--grid);stroke-width:.7;opacity:.7}
+.ctx{font-size:9px;fill:var(--ink-3);letter-spacing:.18em;pointer-events:none}
+.l400{stroke:var(--l400);stroke-width:2;fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.l220{stroke:var(--l220);stroke-width:1.1;fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.ldc{stroke:var(--l400);stroke-width:2;fill:none;stroke-dasharray:7 4;vector-effect:non-scaling-stroke}
+.lsub{stroke:var(--l400);stroke-width:1.6;fill:none;stroke-dasharray:2.5 3;vector-effect:non-scaling-stroke}
+.reg,.reg-can{vector-effect:non-scaling-stroke}
+.l400:hover,.l220:hover,.ldc:hover,.lsub:hover{stroke:var(--ink-1)}
+.nd rect{fill:var(--ink-2);stroke:var(--surface-1);stroke-width:1}
+.nd2 rect{fill:var(--surface-1);stroke:var(--ink-2);stroke-width:1.2}
+.nlbl{font-size:calc(6.6px*var(--fs,1));fill:var(--ink-2);pointer-events:none;paint-order:stroke;stroke:var(--sea);stroke-width:1.6px}
+.slbl{font-size:calc(7.2px*var(--fs,1));font-weight:600;fill:var(--ink-2);pointer-events:none;paint-order:stroke;stroke:var(--surface-1);stroke-width:2px}
+.up{stroke:var(--surface-1);stroke-width:1.1;cursor:pointer}
+.up.dim{opacity:.14}
+.up.sel{stroke:var(--ink-1);stroke-width:2}
+.up.est{fill-opacity:.42;stroke-width:.9;stroke-dasharray:1.8 1.3}
+.cnx{stroke:var(--ink-3);stroke-width:.7;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
+.cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
+.multi-ring{fill:none;stroke:var(--ink-2);stroke-width:.9;stroke-dasharray:2.4 1.8;pointer-events:none}
+.ufm{stroke:var(--ink-1);stroke-width:.9;cursor:pointer}
+#clear{float:right;background:none;border:1px solid var(--axis);border-radius:6px;color:var(--ink-2);
+  font-size:12px;padding:2px 9px;cursor:pointer}
+#clear:hover{color:var(--ink-1);border-color:var(--ink-2)}
+.inset{fill:none;stroke:var(--axis);stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.note{font-size:7.5px;fill:var(--ink-3)}
+.ctx{font-size:calc(9px*var(--fs,1))}
+.mapcard{position:relative}
+.mapbtns{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:5}
+.mapbtns button{background:var(--surface-1);color:var(--ink-1);border:1px solid var(--axis);
+  border-radius:7px;min-width:30px;height:28px;padding:0 9px;font:13px system-ui,sans-serif;cursor:pointer}
+.mapbtns button:hover{border-color:var(--ink-2)}
+#map{cursor:grab;touch-action:none}
+#map.panning{cursor:grabbing}
+@media print{
+  :root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+    --surface-1:#fcfcfb; --surface-2:#f1f0ec; --page:#ffffff;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+    --l400:#52514e; --l220:#a8a69e; --sea:#eef1f2;
+    --s0:#2a78d6; --s1:#1baf7a; --s2:#eda100; --s3:#008300;
+    --s4:#4a3aa7; --s5:#e34948; --s6:#e87ba4; --s7:#eb6834;
+  }
+  .mapbtns,#themebtn,#clear,input[type=search],select{display:none !important}
+  .layout{grid-template-columns:1fr}
+  *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+#tip{position:fixed;z-index:50;max-width:340px;background:var(--surface-1);color:var(--ink-1);
+  border:1px solid var(--ring);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.18);
+  padding:10px 12px;font-size:12px;line-height:1.4;pointer-events:none;display:none}
+#tip h3{margin:0 0 4px;font-size:13px}
+#tip .k{color:var(--ink-2)}
+#tip ul{margin:4px 0 0;padding-left:16px;color:var(--ink-2)}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2)}
+.leg .it{display:flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;flex:none;border:1px solid var(--ring)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ring);border-radius:14px;
+  padding:3px 10px;font-size:12px;cursor:pointer;background:var(--surface-1);color:var(--ink-1);user-select:none}
+.chip.off{opacity:.35}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ctrl{display:flex;gap:8px;margin-bottom:8px}
+input[type=search],select{background:var(--surface-1);color:var(--ink-1);border:1px solid var(--axis);
+  border-radius:7px;padding:6px 10px;font-size:13px}
+input[type=search]{flex:1}
+.tblwrap{max-height:520px;overflow:auto;border:1px solid var(--grid);border-radius:7px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{position:sticky;top:0;background:var(--surface-2);color:var(--ink-2);text-align:left;
+  padding:6px 8px;font-weight:600;font-size:11px;z-index:2}
+td{padding:4.5px 8px;border-top:1px solid var(--grid);vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.sel td{background:color-mix(in srgb,var(--surface-2) 60%,transparent)}
+tr[data-c]{cursor:pointer}
+.tag{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.mut{color:var(--ink-3);font-size:11px}
+.zrt td,.zrt th{padding:3.5px 8px}
+.src{font-size:11.5px;color:var(--ink-2)}
+.src a{color:inherit}
+.lin{display:inline-block;vertical-align:middle;width:26px;margin-right:6px}
+.count{font-size:11.5px;color:var(--ink-3);margin:6px 2px}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}}
+@media print{.tblwrap{max-height:none}}
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="hdr">
+    <h1>Sistema eléctrico español · Unidades de programación, red de transporte y zonas de regulación</h1>
+    <button id="themebtn" title="Cambiar entre tema automático, claro y oscuro">🌓 Tema: auto</button>
+  </div>
+  <p class="sub">Elaborado con los ficheros públicos de ESIOS / Red Eléctrica de España (unidades de programación,
+  unidades físicas y sujetos de mercado) y el registro ELECTRA/RAIPRE del Ministerio (MITECO). <b>Última actualización de los datos: __FECHA__</b> (ejecute actualizar_datos.py para refrescarlos).
+  Trazado de la red y posición de los nudos <b>esquemáticos y simplificados</b>; las ubicaciones marcadas con ⌾ son zonas
+  aproximadas (centroide ponderado por potencia de las unidades físicas agrupadas).</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="layout">
+    <div>
+      <div class="card mapcard">
+        <div class="mapbtns">
+          <button id="zin" title="Acercar">+</button>
+          <button id="zout" title="Alejar">−</button>
+          <button id="zreset" title="Vista completa">⤢</button>
+          <button id="zest" title="Mostrar u ocultar las UPs con ubicación estimada (centroide de sus UFs por comunidad)">◌ estimadas</button>
+          <button id="expng" title="Descargar la vista actual del mapa como imagen PNG">🖼 PNG</button>
+          <button id="expdf" title="Exportar a PDF mediante el diálogo de impresión">🖨 PDF</button>
+        </div>
+        <svg id="map" viewBox="0 0 __W__ __H__" role="img" aria-label="Mapa esquemático de España con unidades de programación y red de transporte">
+          <rect class="mapbg" x="0" y="0" width="__W__" height="__H__" rx="8"/>
+          <g id="viewport">
+            __REGIONS__
+            <g id="canarias"><path class="reg-can" d="__CANARIAS__"/></g>
+            <g id="grid">__GRID__</g>
+            <g id="cnx">__CNX__</g>
+            <g id="nodes">__NODES__</g>
+            <g id="nlbl">__NLBL__</g>
+            <g id="este"></g>
+            <g id="ups"></g>
+            <g id="ufmk"></g>
+            <g id="slbl"></g>
+          </g>
+          <g id="extra"></g>
+        </svg>
+      </div>
+
+      <div class="card"><h2>Leyenda</h2>
+        <div class="leg" style="margin-bottom:8px" id="leg-tech"></div>
+        <div class="leg" style="margin-bottom:8px">
+          <span class="it"><svg class="lin" height="6"><line x1="0" y1="3" x2="26" y2="3" class="l400"/></svg>Red 400 kV</span>
+          <span class="it"><svg class="lin" height="6"><line x1="0" y1="3" x2="26" y2="3" class="l220"/></svg>Red 220 kV (muestra simplificada)</span>
+          <span class="it"><svg class="lin" height="6"><line x1="0" y1="3" x2="26" y2="3" class="ldc"/></svg>Enlace HVDC</span>
+          <span class="it"><svg class="lin" height="6"><line x1="0" y1="3" x2="26" y2="3" class="lsub"/></svg>Cable submarino</span>
+          <span class="it"><svg class="lin" height="10"><rect x="9" y="1" width="6" height="6" style="fill:var(--ink-2)"/></svg>Nudo 400 kV</span>
+          <span class="it"><svg class="lin" height="10"><rect x="9" y="1" width="6" height="6" style="fill:none;stroke:var(--ink-2)"/></svg>Nudo 220 kV</span>
+        </div>
+        <div class="leg">
+          <span class="it" id="leg-size"></span>
+          <span class="it"><svg class="lin" height="16"><circle cx="13" cy="8" r="5" style="fill:none;stroke:var(--ink-2);stroke-dasharray:2.4 1.8"/></svg>⌾ agrupación de varias UF · zona aproximada (centroide ponderado)</span>
+          <span class="it"><svg class="lin" height="14"><rect x="10" y="3" width="6" height="6" transform="rotate(45 13 6)" style="fill:var(--ink-2)"/></svg>◆ unidad física de la UP seleccionada (situada por comunidad autónoma según registro ELECTRA/RAIPRE)</span>
+          <span class="it"><svg class="lin" height="16"><circle cx="13" cy="8" r="4.5" style="fill:var(--ink-3);fill-opacity:.4;stroke:var(--ink-3);stroke-dasharray:1.8 1.3"/></svg>◈ UP con ubicación estimada (centroide de sus UFs; se dibujan las ≥10 MW con ≥25 % de potencia identificada — conmutable con «◌ estimadas»)</span>
+          <span class="it"><svg class="lin" height="8"><line x1="0" y1="4" x2="26" y2="4" style="stroke:var(--ink-3);stroke-dasharray:2 2"/></svg>conexión UP → nudo (esquemática)</span>
+        </div>
+      </div>
+
+      <div class="card"><h2>Método y fuentes</h2>
+        <p class="src" style="margin:0">
+        · <b>UPs, UFs, sujetos y zonas de regulación</b>: ficheros públicos de descarga de ESIOS (REE): <i>UnidadesProgramacion</i>,
+        <i>UnidadesFisicas</i>, <i>SujetosMercado</i> (api.esios.ree.es/archives 81–83).<br>
+        · <b>Registro del Ministerio</b>: exportación pública de ELECTRA (RAIPRE) — energia.serviciosmin.gob.es/Electra. La
+        exportación pública no incluye municipio ni coordenadas, por lo que los emplazamientos puntuales proceden de
+        información pública de cada central; las UP multi-instalación se sitúan en su zona aproximada por potencia ponderada.<br>
+        · <b>Red de transporte</b>: esquema simplificado a partir del mapa de la red de transporte de REE. El trazado no representa
+        la geometría real de las líneas ni la totalidad de la malla (en especial la de 220 kV).<br>
+        · La asignación UP→nudo no es un dato público de ESIOS: el nudo indicado es el de conexión conocido o el más próximo (aprox.);
+        las líneas punteadas UP→nudo son esquemáticas.<br>
+        · <b>UPs con ubicación estimada (◈)</b>: posición calculada como centroide ponderado por potencia de sus unidades físicas
+        identificadas por comunidad autónoma en el registro ELECTRA/RAIPRE, con dispersión aleatoria dentro de la zona — es una
+        aproximación orientativa, no el emplazamiento real; su nudo indicado es simplemente el 400 kV más próximo.<br>
+        · Canarias: sistema no peninsular, sin unidades de programación de mercado en este listado (se muestra atenuada).</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" id="detail" style="display:none">
+        <button id="clear" title="Cerrar y limpiar el mapa">✕ cerrar</button>
+        <h2 id="det-h">UP seleccionada</h2>
+        <div id="det-info" style="font-size:12.5px;margin-bottom:6px"></div>
+        <p class="mut" style="margin:0 0 6px" id="det-note"></p>
+        <div class="tblwrap" style="max-height:300px">
+          <table class="zrt"><thead><tr><th>Unidad física</th><th style="text-align:right">MW</th><th>Comunidad (registro)</th></tr></thead>
+          <tbody id="det-tb"></tbody></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Buscador de unidades de programación (generación, bombeo, almacenamiento e híbridas)</h2>
+        <div class="chips" id="chips"></div>
+        <div class="ctrl">
+          <input type="search" id="q" placeholder="Buscar por UP, unidad física (UF), sujeto de mercado o nudo…">
+          <select id="zrsel"><option value="">Zona regulación: todas</option></select>
+        </div>
+        <div class="tblwrap">
+          <table id="tbl">
+            <thead><tr><th>UP</th><th>Descripción / tecnología</th><th style="text-align:right">MW</th><th>Sujeto</th><th>ZR</th><th style="text-align:right">UF</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="count" id="count"></div>
+      </div>
+
+      <div class="card"><h2>Zonas de regulación (regulación secundaria)</h2>
+        <p class="mut" style="margin:0 0 6px">Zona a la que pertenece cada UP según ESIOS. <b>SZR</b> = sin zona de regulación
+        (<span id="szr"></span>). Se indica el sujeto de mercado predominante en cada zona.</p>
+        <div class="tblwrap" style="max-height:260px">
+          <table class="zrt"><thead><tr><th>Zona</th><th>Sujeto predominante</th><th style="text-align:right">UPs</th><th style="text-align:right">MW</th></tr></thead>
+          <tbody id="zrtb"></tbody></table>
+        </div>
+      </div>
+
+      <div class="card"><h2>Carteras distribuidas (UP con UFs en múltiples provincias, sin emplazamiento único)</h2>
+        <p class="mut" style="margin:0 0 6px">Agrupan decenas de instalaciones repartidas por todo el país: un punto en el mapa
+        induciría a error, por lo que se listan aquí. Sus datos completos aparecen también en el buscador.</p>
+        <div class="tblwrap" style="max-height:240px">
+          <table class="zrt"><thead><tr><th>UP</th><th>Descripción / tecnología</th><th style="text-align:right">MW</th><th>Sujeto</th><th style="text-align:right">UF</th></tr></thead>
+          <tbody id="dtb"></tbody></table>
+        </div>
+      </div>
+
+      <div class="card"><h2>Enlace Península–Baleares (Rómulo, HVDC ±250 kV)</h2>
+        <div class="tblwrap" style="max-height:150px">
+          <table class="zrt"><thead><tr><th>UP</th><th>Descripción</th><th style="text-align:right">MW</th><th>Sujeto</th></tr></thead>
+          <tbody id="etb"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+<script>
+const DATA = __DATA__;
+const COL = DATA.groups.map((g, i) => `var(--s${i})`);
+
+/* tema manual: auto -> claro -> oscuro */
+const tbtn = document.getElementById('themebtn');
+const MODES = ['auto', 'claro', 'oscuro'];
+let tmode = localStorage.getItem('infografia-tema') || 'auto';
+function setTheme(m) {
+  tmode = m; localStorage.setItem('infografia-tema', m);
+  if (m === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.dataset.theme = m === 'claro' ? 'light' : 'dark';
+  tbtn.textContent = '🌓 Tema: ' + m;
+}
+setTheme(tmode);
+tbtn.onclick = () => setTheme(MODES[(MODES.indexOf(tmode) + 1) % 3]);
+const NAME = DATA.groups.map(g => g[0]);
+const rows = DATA.rows, byCode = {}; rows.forEach(r => byCode[r.c] = r);
+rows.forEach(r => {
+  r.q = [r.c, r.d, r.sm, r.smn || '', r.nudo || '', r.site || ''].join('¦').toUpperCase();
+  r.uq = (r.ufs || []).map(u => u[0]).join('¦').toUpperCase();
+});
+const locSet = new Set(DATA.located), distSet = new Set(DATA.dist);
+const R = m => 2.6 + 8.5 * Math.sqrt(Math.max(m,1) / 1550);
+const fmt = n => n.toLocaleString('es-ES', {maximumFractionDigits: 0});
+
+/* tiles */
+const totMW = rows.filter(r => r.tu !== 'Consumo bombeo').reduce((s, r) => s + r.mw, 0);
+const nSM = new Set(rows.map(r => r.sm)).size;
+document.getElementById('tiles').innerHTML = [
+  ['UPs de generación', fmt(rows.length)],
+  ['Potencia máxima agregada', fmt(totMW) + ' MW'],
+  ['Sujetos de mercado', fmt(nSM)],
+  ['Zonas de regulación', fmt(DATA.zr.length)],
+  ['UPs geolocalizadas en el mapa', fmt(DATA.located.length)],
+  ['UPs con ubicación estimada', fmt(DATA.nest)],
+  ['Última actualización de datos', DATA.fecha]
+].map(t => `<div class="tile"><b>${t[1]}</b><span>${t[0]}</span></div>`).join('');
+
+/* marcadores */
+const gU = document.getElementById('ups'), gS = document.getElementById('slbl');
+const locRows = rows.filter(r => locSet.has(r.c)).sort((a, b) => b.mw - a.mw);
+let svg = '', ring = '', lbl = '';
+for (const r of locRows.slice().reverse()) {
+  const rad = R(r.mw);
+  svg += `<circle class="up" data-c="${r.c}" data-r0="${rad}" cx="${r.x}" cy="${r.y}" r="${rad}" fill="${COL[r.t]}"/>`;
+  if (r.multi) ring += `<circle class="multi-ring" data-r0="${(rad + 2.2).toFixed(1)}" cx="${r.x}" cy="${r.y}" r="${rad + 2.2}"/>`;
+}
+for (const r of locRows.slice(0, 22))
+  lbl += `<text class="slbl" x="${r.x + R(r.mw) + 2}" y="${r.y + 2.5}">${r.c}</text>`;
+gU.innerHTML = svg + ring; gS.innerHTML = lbl;
+
+/* UPs con ubicación estimada (>=10 MW dibujadas; todas seleccionables desde la tabla) */
+const gE = document.getElementById('este');
+const Re = m => 1.7 + 6.5 * Math.sqrt(Math.max(m, 1) / 1550);
+let showEst = true;
+const estRows = rows.filter(r => r.est && r.mw >= 10 && r.ep >= 25).sort((a, b) => b.mw - a.mw);
+function renderEst() {
+  if (!showEst) { gE.innerHTML = ''; return; }
+  const mk = Math.pow(zk, -0.6);
+  gE.innerHTML = estRows.slice().reverse().map(r => {
+    const rad = Re(r.mw);
+    return `<circle class="up est" data-c="${r.c}" data-r0="${rad.toFixed(2)}" cx="${r.ex}" cy="${r.ey}"
+      r="${(rad * mk).toFixed(2)}" fill="${COL[r.t]}" stroke="${COL[r.t]}"/>`;
+  }).join('');
+}
+document.getElementById('zest').onclick = () => {
+  showEst = !showEst; renderEst(); apply();
+  document.getElementById('zest').style.opacity = showEst ? 1 : .45;
+};
+
+/* ---- zoom y paneo ---- */
+const map = document.getElementById('map');
+const VP = document.getElementById('viewport');
+const VBW = map.viewBox.baseVal.width, VBH = map.viewBox.baseVal.height;
+let zk = 1, ztx = 0, zty = 0, didPan = false;
+function clampZ() {
+  zk = Math.min(14, Math.max(1, zk));
+  ztx = Math.min(0, Math.max(VBW * (1 - zk), ztx));
+  zty = Math.min(0, Math.max(VBH * (1 - zk), zty));
+}
+function applyZoom() {
+  clampZ();
+  VP.setAttribute('transform', `translate(${ztx.toFixed(1)},${zty.toFixed(1)}) scale(${zk.toFixed(3)})`);
+  const mk = Math.pow(zk, -0.6);
+  map.style.setProperty('--fs', Math.pow(zk, -0.75).toFixed(3));
+  document.querySelectorAll('.up').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
+  document.querySelectorAll('.multi-ring').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
+  const nds = document.querySelectorAll('#nodes g');
+  const nlist = Object.values(DATA.nodes);
+  nds.forEach((el, i) => { if (nlist[i]) el.setAttribute('transform', `translate(${nlist[i][0]},${nlist[i][1]}) scale(${mk.toFixed(3)})`); });
+  renderUFmarks();
+}
+function zoomBy(f, px, py) {
+  if (px === undefined) { px = VBW / 2; py = VBH / 2; }
+  const k2 = Math.min(14, Math.max(1, zk * f));
+  ztx = px - (px - ztx) * (k2 / zk); zty = py - (py - zty) * (k2 / zk);
+  zk = k2; applyZoom();
+}
+function zoomReset() { zk = 1; ztx = zty = 0; applyZoom(); }
+map.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = map.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * VBW / rect.width;
+  const py = (e.clientY - rect.top) * VBH / rect.height;
+  zoomBy(e.deltaY < 0 ? 1.25 : 0.8, px, py);
+}, {passive: false});
+let panS = null;
+map.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  panS = {x: e.clientX, y: e.clientY, moved: false}; map.setPointerCapture(e.pointerId);
+});
+map.addEventListener('pointermove', e => {
+  if (!panS) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - panS.x) * VBW / rect.width, dy = (e.clientY - panS.y) * VBH / rect.height;
+  if (!panS.moved && Math.hypot(e.clientX - panS.x, e.clientY - panS.y) < 4) return;
+  panS.moved = true; map.classList.add('panning');
+  ztx += dx; zty += dy; panS.x = e.clientX; panS.y = e.clientY;
+  clampZ();
+  VP.setAttribute('transform', `translate(${ztx.toFixed(1)},${zty.toFixed(1)}) scale(${zk.toFixed(3)})`);
+});
+map.addEventListener('pointerup', e => {
+  if (panS && panS.moved) didPan = true;
+  panS = null; map.classList.remove('panning');
+});
+document.getElementById('zin').onclick = () => zoomBy(1.4);
+document.getElementById('zout').onclick = () => zoomBy(0.72);
+document.getElementById('zreset').onclick = zoomReset;
+
+renderEst();
+
+/* ---- exportación ---- */
+document.getElementById('expdf').onclick = () => window.print();
+document.getElementById('expng').onclick = () => {
+  const clone = map.cloneNode(true);
+  const st = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  st.textContent = document.querySelector('style').textContent;
+  clone.insertBefore(st, clone.firstChild);
+  const cs = getComputedStyle(document.documentElement);
+  const vars = ['--surface-1','--surface-2','--page','--ink-1','--ink-2','--ink-3','--grid','--axis',
+                '--ring','--l400','--l220','--sea','--s0','--s1','--s2','--s3','--s4','--s5','--s6','--s7'];
+  clone.setAttribute('style',
+    vars.map(v => v + ':' + cs.getPropertyValue(v).trim()).join(';') +
+    ';--fs:' + (map.style.getPropertyValue('--fs') || 1));
+  const SC = 2.2;
+  clone.setAttribute('width', Math.round(VBW * SC)); clone.setAttribute('height', Math.round(VBH * SC));
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)],
+    {type: 'image/svg+xml;charset=utf-8'}));
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = Math.round(VBW * SC); c.height = Math.round(VBH * SC);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = cs.getPropertyValue('--surface-1').trim() || '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob(b => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'mapa_sistema_electrico_' + (DATA.fecha || '').split(' ')[0] + '.png';
+      a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    });
+  };
+  img.src = url;
+};
+
+/* inset y anotaciones */
+document.getElementById('extra').innerHTML =
+  `<text class="note" x="18" y="${document.getElementById('map').viewBox.baseVal.height - 14}">Canarias (sistema no peninsular · sin UPs de mercado en este listado) — posición trasladada</text>`;
+
+/* leyenda tecnología + chips */
+const on = new Set(NAME.map((_, i) => i));
+document.getElementById('leg-tech').innerHTML = NAME.map((n, i) =>
+  `<span class="it"><span class="dot" style="background:${COL[i]}"></span>${n}
+   <span class="mut">${fmt(DATA.tot[i]?.[0] ?? 0)} UP · ${fmt(DATA.tot[i]?.[1] ?? 0)} MW</span></span>`).join('');
+document.getElementById('leg-size').innerHTML =
+  `<svg class="lin" width="70" height="26" style="width:70px">
+    <circle cx="10" cy="16" r="${R(100)}" style="fill:none;stroke:var(--ink-2)"/>
+    <circle cx="30" cy="16" r="${R(500)}" style="fill:none;stroke:var(--ink-2)"/>
+    <circle cx="56" cy="16" r="${R(1500)}" style="fill:none;stroke:var(--ink-2)"/>
+   </svg>Ø = potencia máxima (100 / 500 / 1 500 MW)`;
+const chips = document.getElementById('chips');
+chips.innerHTML = NAME.map((n, i) =>
+  `<span class="chip" data-i="${i}"><span class="dot" style="background:${COL[i]}"></span>${n}</span>`).join('');
+chips.onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const i = +c.dataset.i;
+  on.has(i) && on.size > 1 ? on.delete(i) : on.add(i);
+  [...chips.children].forEach(ch => ch.classList.toggle('off', !on.has(+ch.dataset.i)));
+  apply();
+};
+
+/* selector ZR */
+const zrsel = document.getElementById('zrsel');
+DATA.zr.forEach(z => zrsel.insertAdjacentHTML('beforeend', `<option>${z[0]}</option>`));
+zrsel.insertAdjacentHTML('beforeend', `<option>SZR</option>`);
+
+/* tabla */
+const tb = document.querySelector('#tbl tbody'), cnt = document.getElementById('count');
+const q = document.getElementById('q');
+let shown = [];
+function apply() {
+  const s = q.value.trim().toUpperCase(), z = zrsel.value;
+  shown = rows.filter(r => on.has(r.t)
+    && (!z || r.zr === z)
+    && (!s || r.q.includes(s) || r.uq.includes(s)));
+  tb.innerHTML = shown.slice(0, 500).map(r => `
+    <tr data-c="${r.c}"><td><b>${r.c}</b>${locSet.has(r.c) ? ' 📍' : r.est ? ' ◈' : distSet.has(r.c) ? ' ◇' : ''}</td>
+    <td><span class="tag" style="background:${COL[r.t]}"></span>${r.d}<div class="mut">${r.tp}${r.site ? ' · ' + r.site : ''}</div>${
+      s && !r.q.includes(s) && r.uq.includes(s)
+        ? `<div class="mut">↳ contiene la UF: <b>${(r.ufs.find(u => u[0].toUpperCase().includes(s)) || [''])[0]}</b></div>` : ''}</td>
+    <td class="num">${r.mw.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+    <td>${r.sm}<div class="mut">${(r.smn || '').slice(0, 26)}</div></td><td>${r.zr}</td><td class="num">${r.uf}</td></tr>`).join('');
+  cnt.textContent = `${fmt(shown.length)} de ${fmt(rows.length)} UPs` + (shown.length > 500 ? ' (mostrando las 500 mayores — afine la búsqueda)' : '') + ' · 📍 en el mapa · ◈ ubicación estimada · ◇ cartera distribuida';
+  const okSet = new Set(shown.map(r => r.c));
+  document.querySelectorAll('.up').forEach(el => el.classList.toggle('dim', !okSet.has(el.dataset.c)));
+}
+q.oninput = apply; zrsel.onchange = apply; apply();
+
+/* zonas de regulación */
+document.getElementById('szr').textContent = `${fmt(DATA.szr[0])} UP · ${fmt(DATA.szr[1])} MW`;
+document.getElementById('zrtb').innerHTML = DATA.zr.map(z => {
+  const smn = (rows.find(r => r.sm === z[3]) || {}).smn || '';
+  return `<tr><td><b>${z[0]}</b></td><td>${z[3]}${smn ? ` <span class="mut">${smn.slice(0, 28)}</span>` : ''}</td><td class="num">${fmt(z[1])}</td><td class="num">${fmt(z[2])}</td></tr>`;
+}).join('');
+
+/* carteras distribuidas */
+document.getElementById('dtb').innerHTML = DATA.dist.map(c => byCode[c]).map(r =>
+  `<tr data-c="${r.c}"><td><b>${r.c}</b></td><td><span class="tag" style="background:${COL[r.t]}"></span>${r.d}<div class="mut">${r.tp}</div></td>
+   <td class="num">${fmt(r.mw)}</td><td>${r.sm}</td><td class="num">${r.uf}</td></tr>`).join('');
+
+/* enlaces baleares */
+document.getElementById('etb').innerHTML = DATA.enl.map(r =>
+  `<tr><td><b>${r.c}</b></td><td>${r.d}</td><td class="num">${fmt(r.mw)}</td><td>${r.sm}</td></tr>`).join('');
+
+/* tooltip */
+const tip = document.getElementById('tip');
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 12;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 12;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function upTip(r) {
+  const sh = (r.shared || []).length ? `<div><span class="k">Comparte nudo con:</span> ${r.shared.join(', ')}</div>` : '';
+  const ufs = (r.ufs || []).length ? `<div class="k" style="margin-top:4px">Unidades físicas agrupadas (${r.uf}${r.uf > 8 ? ', 8 mayores — clic para ver todas' : ''}):</div><ul>` +
+    r.ufs.slice(0, 8).map(u => `<li>${u[0]} · ${u[1]} MW</li>`).join('') + '</ul>' : '';
+  return `<h3><span class="tag" style="background:${COL[r.t]}"></span>${r.c} — ${r.d}</h3>
+  <div><span class="k">Tecnología:</span> ${r.tp} · <b>${r.mw.toLocaleString('es-ES')} MW</b></div>
+  <div><span class="k">Sujeto de mercado:</span> ${r.sm}${r.smn ? ' — ' + r.smn : ''}</div>
+  <div><span class="k">Zona de regulación:</span> ${r.zr}</div>
+  ${r.site ? `<div><span class="k">Emplazamiento:</span> ${r.site}${r.multi ? ' <b>(zona aprox. · centroide ponderado)</b>' : ''}</div>` : ''}
+  ${r.nudo ? `<div><span class="k">Nudo (esquemático):</span> ${r.nudo}</div>` : ''}
+  ${!r.nudo && r.est ? `<div><span class="k">Ubicación estimada</span> (centroide de sus UFs por comunidad, ${r.ep}% de su potencia identificada)</div>
+  <div><span class="k">Nudo 400 kV más próximo (aprox.):</span> ${r.en}</div>` : ''}
+  ${sh}${ufs}`;
+}
+document.getElementById('map').addEventListener('mousemove', ev => {
+  const t = ev.target;
+  if (t.classList && t.classList.contains('up')) showTip(upTip(byCode[t.dataset.c]), ev);
+  else if (t.dataset && t.dataset.tip) showTip(`<div>${t.dataset.tip}</div>`, ev);
+  else if (!pinned) tip.style.display = 'none';
+});
+document.getElementById('map').addEventListener('mouseleave', () => { if (!pinned) tip.style.display = 'none'; });
+
+/* selección de UP: panel de detalle + UFs en el mapa */
+let pinned = false, selEl = null;
+const gUF = document.getElementById('ufmk');
+const det = document.getElementById('detail');
+let lastUFsel = null;
+function renderUFmarks() {
+  if (!lastUFsel) { gUF.innerHTML = ''; return; }
+  const r = lastUFsel, mk = Math.pow(zk, -0.6), sz = (5.2 * mk).toFixed(2), o = (2.6 * mk).toFixed(2);
+  const perCA = {};
+  let svg = '';
+  if (r.est && !locSet.has(r.c)) {
+    const nd = DATA.nodes[r.en];
+    if (nd) svg += `<line class="cnx2" x1="${r.ex}" y1="${r.ey}" x2="${nd[0]}" y2="${nd[1]}"/>`;
+  }
+  for (const u of (r.ufs || [])) {
+    if (u[2] < 0) continue;
+    const i = perCA[u[2]] = (perCA[u[2]] ?? -1) + 1;
+    const [cx, cy] = DATA.capos[u[2]];
+    const rad = (5 + 2.3 * Math.sqrt(i)) * mk, ang = i * 2.39996;
+    const x = (cx + rad * Math.cos(ang)).toFixed(1), y = (cy + rad * Math.sin(ang)).toFixed(1);
+    svg += `<rect class="ufm" x="-${o}" y="-${o}" width="${sz}" height="${sz}" fill="${COL[u[3]]}"
+      transform="translate(${x},${y}) rotate(45)"
+      data-tip="UF ${u[0]} · ${u[1]} MW · ${DATA.canames[u[2]]} (aprox. por registro) · pertenece a ${r.c}"/>`;
+  }
+  gUF.innerHTML = svg;
+}
+function clearSel() {
+  pinned = false; tip.style.display = 'none';
+  if (selEl) { selEl.classList.remove('sel'); selEl = null; }
+  lastUFsel = null; gUF.innerHTML = ''; det.style.display = 'none';
+  tb.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel'));
+}
+function selectUP(c) {
+  clearSel();
+  const r = byCode[c]; if (!r) return;
+  /* marcador UP */
+  const el = document.querySelector(`.up[data-c="${c}"]`);
+  if (el) { selEl = el; el.classList.add('sel'); }
+  /* fila de la tabla */
+  const row = tb.querySelector(`tr[data-c="${c}"]`);
+  if (row) { row.classList.add('sel'); row.scrollIntoView({block: 'nearest'}); }
+  /* marcadores de UF por comunidad (registro ELECTRA/RAIPRE) */
+  lastUFsel = r; renderUFmarks();
+  const nloc = (r.ufs || []).filter(u => u[2] >= 0).length;
+  /* panel de detalle */
+  det.style.display = '';
+  document.getElementById('det-h').textContent = `${r.c} — ${r.d}`;
+  document.getElementById('det-info').innerHTML =
+    `<span class="tag" style="background:${COL[r.t]}"></span>${r.tp} · <b>${r.mw.toLocaleString('es-ES')} MW</b>
+     · Sujeto: <b>${r.sm}</b>${r.smn ? ' (' + r.smn + ')' : ''} · Zona de regulación: <b>${r.zr}</b>
+     ${r.site ? '<br>Emplazamiento: ' + r.site + (r.multi ? ' <b>(zona aprox. · centroide ponderado)</b>' : '') : ''}
+     ${r.nudo ? ' · Nudo (esquemático): ' + r.nudo : ''}
+     ${!r.nudo && r.est ? `<br><b>Ubicación estimada</b> por el centroide de sus UFs identificadas (${r.ep}% de su potencia) · Nudo 400 kV más próximo (aprox.): <b>${r.en}</b>` : ''}
+     ${(r.shared || []).length ? '<br>Comparte nudo con: ' + r.shared.join(', ') : ''}`;
+  document.getElementById('det-note').textContent =
+    `${r.uf} unidades físicas asociadas; ${nloc} situadas en el mapa (◆) a nivel de comunidad autónoma, cruzando su ` +
+    `nombre con el registro ELECTRA/RAIPRE del Ministerio (la exportación pública del registro no incluye municipio ni coordenadas). ` +
+    (r.uf - nloc > 0 ? `Las ${r.uf - nloc} restantes no se han podido identificar en el registro por nombre.` : '');
+  document.getElementById('det-tb').innerHTML = (r.ufs || []).map(u =>
+    `<tr><td><span class="tag" style="background:${COL[u[3]]}"></span>${u[0]}</td>
+     <td class="num">${u[1].toLocaleString('es-ES', {minimumFractionDigits: 1})}</td>
+     <td>${u[2] >= 0 ? DATA.canames[u[2]] + ' ◆' : '<span class="mut">sin identificar</span>'}</td></tr>`).join('');
+  det.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+}
+document.getElementById('clear').onclick = clearSel;
+document.getElementById('map').addEventListener('click', ev => {
+  if (didPan) { didPan = false; return; }
+  const t = ev.target;
+  if (t.classList && t.classList.contains('up')) { pinned = true; selectUP(t.dataset.c); showTip(upTip(byCode[t.dataset.c]), ev); }
+  else if (!(t.classList && t.classList.contains('ufm'))) clearSel();
+});
+tb.addEventListener('click', ev => {
+  const tr = ev.target.closest('tr[data-c]'); if (!tr) return;
+  selectUP(tr.dataset.c);
+});
+document.getElementById('dtb').addEventListener('click', ev => {
+  const tr = ev.target.closest('tr[data-c]'); if (!tr) return;
+  selectUP(tr.dataset.c);
+});
+</script>
+</body>
+</html>

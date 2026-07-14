@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# credenciales: nunca versionar
+.env
+*.env
+*token*
+*.key
+*.pem
+credentials*
