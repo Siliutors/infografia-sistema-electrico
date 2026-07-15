@@ -73,8 +73,8 @@ svg{display:block;width:100%;height:auto}
 .up.est{fill-opacity:.42;stroke-width:.9;stroke-dasharray:1.8 1.3}
 .cnx{stroke:var(--ink-3);stroke-width:.7;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
 .cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
-.up.msube{fill:var(--s0);fill-opacity:.8;stroke:var(--surface-1)}
-.up.mbaja{fill:var(--s5);fill-opacity:.8;stroke:var(--surface-1)}
+.up.msube{stroke:var(--s0);stroke-width:2.4;fill-opacity:.85}
+.up.mbaja{stroke:var(--s5);stroke-width:2.4;fill-opacity:.85}
 #mktbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:12.5px}
 #mktbar button,#mktbar select,#mktbar input[type=date]{background:var(--surface-1);color:var(--ink-1);
   border:1px solid var(--axis);border-radius:7px;padding:4px 9px;font:12.5px system-ui,sans-serif;cursor:pointer}
@@ -196,9 +196,9 @@ tr[data-c]{cursor:pointer}
           <button id="mnext" disabled title="Periodo siguiente">▶</button>
           <button id="mplay" disabled title="Reproducir la evolución de los periodos">▶ play</button>
           <span id="mper" style="min-width:88px;font-variant-numeric:tabular-nums"></span>
-          <span class="it"><span class="dot" style="background:var(--s0)"></span>sube / +</span>
-          <span class="it"><span class="dot" style="background:var(--s5)"></span>baja / −</span>
-          <span class="mut">Ø ∝ |MWh|</span>
+          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s0)"></span>borde: sube / +</span>
+          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s5)"></span>borde: baja / −</span>
+          <span class="mut">relleno = tecnología · Ø ∝ |MWh|</span>
           <button id="mexit" title="Cerrar la capa de mercados">✕</button>
           <div id="mstatus" class="mut" style="flex-basis:100%"></div>
         </div>
@@ -569,14 +569,16 @@ function parseSheet(txt) {
     const c = lines[i].split(';');
     const up = (c[iUP] || '').trim();
     if (!up) continue;
-    const sign = iS >= 0 && (c[iS] || '').trim().toLowerCase().startsWith('baja') ? -1 : 1;
+    /* con columna Sentido el signo lo fija el sentido (los CSV traen las bajadas ya en negativo:
+       forzamos -|v| / +|v| para no duplicar el signo); sin Sentido, el valor va firmado tal cual */
+    const dir = iS < 0 ? 0 : ((c[iS] || '').trim().toLowerCase().startsWith('baja') ? -1 : 1);
     let arr = units.get(up);
     if (!arr) { arr = new Float64Array(nper); units.set(up, arr); }
     for (const [ix, p] of pcols) {
       const s = c[ix];
       if (!s) continue;
       const v = parseFloat(s.replace(',', '.'));
-      if (v) arr[p - 1] += sign * v;
+      if (v) arr[p - 1] += dir === 0 ? v : dir * Math.abs(v);
     }
   }
   let vmax = 0;
@@ -600,7 +602,7 @@ function mktSelect() {
   renderMkt();
 }
 $m('msel').onchange = mktSelect;
-const Rm = v => 2 + 16 * Math.sqrt(Math.abs(v) / mktData.vmax);
+const Rm = v => 3 + 16 * Math.sqrt(Math.abs(v) / mktData.vmax);
 function renderMkt() {
   const g = document.getElementById('mkt');
   if (!mktData) { g.innerHTML = ''; return; }
@@ -620,8 +622,8 @@ function renderMkt() {
   for (const it of items.slice().reverse()) {
     const rad = Rm(it.v);
     out += `<circle class="up mkt ${it.v > 0 ? 'msube' : 'mbaja'}" data-c="${it.u}" data-r0="${rad.toFixed(2)}"
-      cx="${it.x}" cy="${it.y}" r="${(rad * mk).toFixed(2)}"
-      data-tip="${it.u} · ${fmtV(it.v)} MWh · P${mktPer} (${perLabel(mktPer)}) · ${mname}"/>`;
+      cx="${it.x}" cy="${it.y}" r="${(rad * mk).toFixed(2)}" fill="${COL[it.r.t]}"
+      data-tip="${it.u} · ${fmtV(it.v)} MWh (${it.v > 0 ? 'sube' : 'baja'}) · ${it.r.tp} · P${mktPer} (${perLabel(mktPer)}) · ${mname}"/>`;
   }
   g.innerHTML = out;
   mktItems = items;
