@@ -73,6 +73,13 @@ svg{display:block;width:100%;height:auto}
 .up.est{fill-opacity:.42;stroke-width:.9;stroke-dasharray:1.8 1.3}
 .cnx{stroke:var(--ink-3);stroke-width:.7;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
 .cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
+.up.msube{fill:var(--s0);fill-opacity:.8;stroke:var(--surface-1)}
+.up.mbaja{fill:var(--s5);fill-opacity:.8;stroke:var(--surface-1)}
+#mktbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:12.5px}
+#mktbar button,#mktbar select,#mktbar input[type=date]{background:var(--surface-1);color:var(--ink-1);
+  border:1px solid var(--axis);border-radius:7px;padding:4px 9px;font:12.5px system-ui,sans-serif;cursor:pointer}
+#mktbar input[type=range]{flex:1;min-width:120px;accent-color:var(--s0)}
+#mktbar .it{display:flex;align-items:center;gap:5px;color:var(--ink-2)}
 .multi-ring{fill:none;stroke:var(--ink-2);stroke-width:.9;stroke-dasharray:2.4 1.8;pointer-events:none}
 .ufm{stroke:var(--ink-1);stroke-width:.9;cursor:pointer}
 #clear{float:right;background:none;border:1px solid var(--axis);border-radius:6px;color:var(--ink-2);
@@ -159,6 +166,7 @@ tr[data-c]{cursor:pointer}
           <button id="zreset" title="Vista completa">⤢</button>
           <button id="zest" title="Mostrar u ocultar las UPs con ubicación estimada (centroide de sus UFs por comunidad)">◌ estimadas</button>
           <button id="zlbl" title="Mostrar u ocultar los códigos de las UPs (aparecen más al hacer zoom)">🏷 códigos</button>
+          <button id="zmkt" title="Cargar el I90 diario de ESIOS y visualizar la actuación de cada UP por mercado y periodo">📊 mercados</button>
           <button id="expng" title="Descargar la vista actual del mapa como imagen PNG">🖼 PNG</button>
           <button id="expdf" title="Exportar a PDF mediante el diálogo de impresión">🖨 PDF</button>
         </div>
@@ -173,11 +181,27 @@ tr[data-c]{cursor:pointer}
             <g id="nlbl"><text class="nlbl" x="394.8" y="269.6">Almaraz</text><text class="nlbl" x="340.4" y="274.8">J.M. Oriol</text><text class="nlbl" x="378.6" y="401.4">Guillena</text><text class="nlbl" x="409.4" y="481.2">Pinar del Rey</text><text class="nlbl" x="601.5" y="382.2">El Palmar</text><text class="nlbl" x="608.4" y="305.0">Cofrentes</text><text class="nlbl" x="646.0" y="279.6">Morvedre</text><text class="nlbl" x="682.9" y="186.0">Ascó</text><text class="nlbl" x="696.5" y="200.9">Vandellós</text><text class="nlbl" x="754.6" y="160.8">Sentmenat</text><text class="nlbl" x="791.3" y="124.2">Sta. Llogaia</text><text class="nlbl" x="579.0" y="127.80000000000001">Castejón</text><text class="nlbl" x="533.9" y="87.0">Vitoria</text><text class="nlbl" x="482.0" y="58.2">Penagos</text><text class="nlbl" x="386.4" y="59.4">Soto de Ribera</text><text class="nlbl" x="295.4" y="51.6">As Pontes</text><text class="nlbl" x="288.0" y="123.0">Cartelle</text><text class="nlbl" x="321.1" y="117.0">Trives</text><text class="nlbl" x="352.4" y="185.4">Aldeadávila</text><text class="nlbl" x="429.2" y="151.2">La Mudarra</text><text class="nlbl" x="490.3" y="225.0">S.S. Reyes</text><text class="nlbl" x="536.2" y="215.9">Trillo</text><text class="nlbl" x="480.6" y="261.6">Aceca</text><text class="nlbl" x="362.5" y="326.4">San Serván</text><text class="nlbl" x="339.5" y="427.2">Palos</text><text class="nlbl" x="389.6" y="454.8">Arcos</text><text class="nlbl" x="612.5" y="402.6">El Fangal</text><text class="nlbl" x="642.0" y="180.6">Aragón</text><text class="nlbl" x="397.0" y="495.0">Tarifa</text><text class="nlbl" x="702.2" y="107.4">Sallente</text><text class="nlbl" x="565.7" y="62.400000000000006">Hernani</text><text class="nlbl" x="531.7" y="63.3">Boroa</text><text class="nlbl" x="433.8" y="88.2">Velilla</text><text class="nlbl" x="400.7" y="104.4">Vilecha</text><text class="nlbl" x="560.1" y="282.0">Olmedilla</text><text class="nlbl" x="583.1" y="286.2">Minglanilla</text><text class="nlbl" x="576.2" y="315.0">Romica</text><text class="nlbl" x="456.7" y="339.0">Brazatortas</text><text class="nlbl" x="418.6" y="303.6">Valdecaballeros</text><text class="nlbl" x="529.4" y="405.0">Baza</text><text class="nlbl" x="569.3" y="439.8">Litoral</text><text class="nlbl" x="658.5" y="168.6">Peñalba</text><text class="nlbl" x="617.1" y="211.8">Mezquita</text><text class="nlbl" x="652.1" y="220.8">Morella</text><text class="nlbl" x="560.1" y="74.4">Ichaso</text><text class="nlbl" x="581.8" y="100.8">Muruarte</text><text class="nlbl" x="471.4" y="220.8">Galapagar</text><text class="nlbl" x="384.6" y="426.0">Don Rodrigo</text><text class="nlbl" x="715.5" y="184.8">La Secuita</text><text class="nlbl" x="487.5" y="421.2">Caparacena</text><text class="ctx" x="268.9" y="285.0" text-anchor="middle">PORTUGAL</text><text class="ctx" x="620.5" y="36.0" text-anchor="middle">FRANCIA</text><text class="ctx" x="441.2" y="540.0" text-anchor="middle">MARRUECOS</text><rect class="inset" x="20.7" y="399.0" width="236.7" height="141.0" rx="6"/><text class="ctx" x="26.7" y="411.0" style="letter-spacing:.08em">CANARIAS</text><text class="ctx" x="786.0" y="258.0" style="letter-spacing:.08em">ILLES BALEARS</text><text class="nlbl" x="770.2" y="298.4">Sta. Ponsa</text></g>
             <g id="este"></g>
             <g id="ups"></g>
+            <g id="mkt"></g>
             <g id="ufmk"></g>
             <g id="slbl"></g>
           </g>
           <g id="extra"></g>
         </svg>
+        <div id="mktbar" style="display:none">
+          <input type="date" id="mdate" title="Fecha de los datos (el I90 se publica ~90 días después)">
+          <button id="mload">Cargar I90</button>
+          <select id="msel" disabled><option value="">— mercado —</option></select>
+          <button id="mprev" disabled title="Periodo anterior">◀</button>
+          <input type="range" id="mrange" min="1" max="96" value="1" disabled>
+          <button id="mnext" disabled title="Periodo siguiente">▶</button>
+          <button id="mplay" disabled title="Reproducir la evolución de los periodos">▶ play</button>
+          <span id="mper" style="min-width:88px;font-variant-numeric:tabular-nums"></span>
+          <span class="it"><span class="dot" style="background:var(--s0)"></span>sube / +</span>
+          <span class="it"><span class="dot" style="background:var(--s5)"></span>baja / −</span>
+          <span class="mut">Ø ∝ |MWh|</span>
+          <button id="mexit" title="Cerrar la capa de mercados">✕</button>
+          <div id="mstatus" class="mut" style="flex-basis:100%"></div>
+        </div>
       </div>
 
       <div class="card"><h2>Leyenda</h2>
@@ -431,19 +455,24 @@ function renderLabels() {
         grid.get(k2).push(b);
       }
   };
+  const cands = (window.mktData && window.mktItems)
+    ? window.mktItems.map(it => ({r: it.r, x: it.x, y: it.y, r0: Rm(it.v), s: Math.abs(it.v), e: 0,
+        txt: it.u + ' ' + fmtV(it.v)}))
+    : lblCand;
   let out = '', n = 0;
-  for (const c of lblCand) {
+  for (const c of cands) {
     if (n >= 320) break;
     if (c.e && !showEst) continue;
     if (okSetG && !okSetG.has(c.r.c)) continue;
     const sx = ztx + zk * c.x, sy = zty + zk * c.y;
     if (sx < -30 || sx > VBW + 10 || sy < -10 || sy > VBH + 10) continue;
+    const code = c.txt || c.r.c;
     const offX = c.r0 * Math.pow(zk, 0.4) + 2.5;
-    const w = c.r.c.length * fsScr * 0.64 + 3, h = fsScr * 1.15;
+    const w = code.length * fsScr * 0.64 + 3, h = fsScr * 1.15;
     const bx = sx + offX, by = sy - h / 2;
     if (collide(bx - 2, by - 1, w + 4, h + 2)) continue;
     put(bx - 2, by - 1, w + 4, h + 2);
-    out += `<text class="slbl" x="${(c.x + offX / zk).toFixed(1)}" y="${(c.y + fsW * 0.35).toFixed(1)}">${c.r.c}</text>`;
+    out += `<text class="slbl" x="${(c.x + offX / zk).toFixed(1)}" y="${(c.y + fsW * 0.35).toFixed(1)}">${code}</text>`;
     n++;
   }
   gS.innerHTML = out;
@@ -455,6 +484,163 @@ document.getElementById('zlbl').onclick = () => {
 
 renderEst();
 renderLabels();
+
+/* ---- capa de mercados I90 (archivo 34 de ESIOS) ---- */
+const MKT_SHEETS = [
+  ['26', 'PDBF — programa diario base'], ['01', 'PDVP — programa viable provisional'],
+  ['19', 'PHF-1'], ['20', 'PHF-2'], ['21', 'PHF-3'], ['36', 'PHFC — intradiario continuo'],
+  ['02', 'P48 — programa final'], ['03', 'Restricciones técnicas PDBF (↑/↓)'],
+  ['08', 'Restricciones en tiempo real (↑/↓)'], ['07', 'Terciaria mFRR (↑/↓)'],
+  ['06', 'Energías de balance RR (↑/↓)'], ['27', 'Contratos bilaterales'], ['12', 'Energía indisponible']];
+const $m = id => document.getElementById(id);
+var mktZip = null, mktData = null, mktItems = null, mktPer = 1, mktNper = 96, mktPlay = null;
+MKT_SHEETS.forEach(([v, t]) => $m('msel').insertAdjacentHTML('beforeend', `<option value="${v}">${t}</option>`));
+$m('mdate').value = new Date(Date.now() - 92 * 864e5).toISOString().slice(0, 10);
+const perLabel = p => `${String(Math.floor((p - 1) / 4)).padStart(2, '0')}:${String(((p - 1) % 4) * 15).padStart(2, '0')}`;
+const fmtV = v => (v > 0 ? '+' : '') + v.toLocaleString('es-ES', {maximumFractionDigits: 1});
+$m('zmkt').onclick = () => {
+  const vis = $m('mktbar').style.display !== 'none';
+  $m('mktbar').style.display = vis ? 'none' : 'flex';
+  if (vis) mktClear();
+};
+$m('mexit').onclick = () => { $m('mktbar').style.display = 'none'; mktClear(); };
+function mktClear() {
+  if (mktPlay) { clearInterval(mktPlay); mktPlay = null; $m('mplay').textContent = '▶ play'; }
+  mktData = mktItems = null; document.getElementById('mkt').innerHTML = '';
+  gU.style.opacity = 1; gE.style.opacity = 1;
+  $m('mstatus').textContent = ''; $m('mper').textContent = '';
+  ['mprev', 'mnext', 'mplay', 'mrange'].forEach(x => $m(x).disabled = true);
+  renderLabels();
+}
+async function unzip(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let e = buf.byteLength - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('no es un ZIP');
+  const n = dv.getUint16(e + 10, true); let off = dv.getUint32(e + 16, true);
+  const out = {};
+  for (let i = 0; i < n; i++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true),
+          nlen = dv.getUint16(off + 28, true), elen = dv.getUint16(off + 30, true),
+          clen = dv.getUint16(off + 32, true), lho = dv.getUint32(off + 42, true),
+          name = new TextDecoder().decode(u8.subarray(off + 46, off + 46 + nlen));
+    const nl = dv.getUint16(lho + 26, true), el = dv.getUint16(lho + 28, true);
+    const data = u8.subarray(lho + 30 + nl + el, lho + 30 + nl + el + csize);
+    out[name] = method === 0 ? data
+      : new Uint8Array(await new Response(new Blob([data]).stream()
+          .pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    off += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+$m('mload').onclick = async () => {
+  const d = $m('mdate').value;
+  if (!d) { $m('mstatus').textContent = 'Elija una fecha.'; return; }
+  $m('mstatus').textContent = 'Descargando I90 de ' + d + ' desde api.esios.ree.es…';
+  try {
+    const enc = encodeURIComponent;
+    const url = `https://api.esios.ree.es/archives/34/download?date_type=datos&end_date=${enc(d + 'T23:59:59+00:00')}&locale=es&start_date=${enc(d + 'T00:00:00+00:00')}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    mktZip = await unzip(await r.arrayBuffer());
+    $m('msel').disabled = false;
+    $m('mstatus').textContent = `I90 de ${d} cargado (${Object.keys(mktZip).length} cuadernos). Elija un mercado.`;
+    if ($m('msel').value) mktSelect();
+  } catch (err) {
+    $m('mstatus').textContent = 'Error: ' + err.message +
+      ' — el I90 se publica con ~90 días de retraso; pruebe una fecha anterior o compruebe la conexión.';
+  }
+};
+function parseSheet(txt) {
+  const lines = txt.split(/\r?\n/);
+  let hi = -1, H = null;
+  for (let i = 0; i < Math.min(lines.length, 12); i++)
+    if (lines[i].includes('Unidad de Programación')) { hi = i; H = lines[i].split(';'); break; }
+  if (hi < 0) return null;
+  const iUP = H.findIndex(c => c.trim() === 'Unidad de Programación');
+  const iS = H.findIndex(c => c.trim() === 'Sentido');
+  const pcols = [];
+  H.forEach((c, ix) => { if (/^\d{1,3}$/.test(c.trim())) pcols.push([ix, +c.trim()]); });
+  if (!pcols.length) return null;
+  const nper = Math.max(...pcols.map(p => p[1]));
+  const units = new Map();
+  for (let i = hi + 1; i < lines.length; i++) {
+    const c = lines[i].split(';');
+    const up = (c[iUP] || '').trim();
+    if (!up) continue;
+    const sign = iS >= 0 && (c[iS] || '').trim().toLowerCase().startsWith('baja') ? -1 : 1;
+    let arr = units.get(up);
+    if (!arr) { arr = new Float64Array(nper); units.set(up, arr); }
+    for (const [ix, p] of pcols) {
+      const s = c[ix];
+      if (!s) continue;
+      const v = parseFloat(s.replace(',', '.'));
+      if (v) arr[p - 1] += sign * v;
+    }
+  }
+  let vmax = 0;
+  units.forEach(a => { for (const v of a) { const av = Math.abs(v); if (av > vmax) vmax = av; } });
+  return {units, nper, vmax};
+}
+function mktSelect() {
+  const id = $m('msel').value;
+  if (!id || !mktZip) return;
+  const key = Object.keys(mktZip).find(k => k.startsWith('I90DIA' + id));
+  const d = key ? parseSheet(new TextDecoder().decode(mktZip[key]).replace(/^﻿/, '')) : null;
+  if (!d || !d.vmax) {
+    $m('mstatus').textContent = 'Sin datos por UP en ese mercado para esa fecha.';
+    mktData = mktItems = null; document.getElementById('mkt').innerHTML = ''; renderLabels(); return;
+  }
+  mktData = d; mktNper = d.nper; $m('mrange').max = d.nper; mktPer = Math.min(mktPer, d.nper);
+  ['mprev', 'mnext', 'mplay', 'mrange'].forEach(x => $m(x).disabled = false);
+  gU.style.opacity = .12; gE.style.opacity = .08;
+  const nUnloc = [...d.units.keys()].filter(u => { const r = byCode[u]; return !r || (r.x === undefined && r.ex === undefined); }).length;
+  $m('mstatus').textContent = `${d.units.size} UPs con datos · máx |valor| por periodo = ${d.vmax.toLocaleString('es-ES', {maximumFractionDigits: 1})} MWh · ${nUnloc} sin posición en el mapa (demanda/comercialización principalmente)`;
+  renderMkt();
+}
+$m('msel').onchange = mktSelect;
+const Rm = v => 2 + 16 * Math.sqrt(Math.abs(v) / mktData.vmax);
+function renderMkt() {
+  const g = document.getElementById('mkt');
+  if (!mktData) { g.innerHTML = ''; return; }
+  const mk = Math.pow(zk, -0.6), mname = $m('msel').selectedOptions[0].textContent;
+  const items = [];
+  mktData.units.forEach((arr, u) => {
+    const v = arr[mktPer - 1];
+    if (!v) return;
+    const r = byCode[u];
+    if (!r) return;
+    const x = r.x ?? r.ex, y = r.y ?? r.ey;
+    if (x === undefined) return;
+    items.push({u, v, x, y, r});
+  });
+  items.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  let out = '';
+  for (const it of items.slice().reverse()) {
+    const rad = Rm(it.v);
+    out += `<circle class="up mkt ${it.v > 0 ? 'msube' : 'mbaja'}" data-c="${it.u}" data-r0="${rad.toFixed(2)}"
+      cx="${it.x}" cy="${it.y}" r="${(rad * mk).toFixed(2)}"
+      data-tip="${it.u} · ${fmtV(it.v)} MWh · P${mktPer} (${perLabel(mktPer)}) · ${mname}"/>`;
+  }
+  g.innerHTML = out;
+  mktItems = items;
+  $m('mper').textContent = `P${mktPer} · ${perLabel(mktPer)}`;
+  $m('mrange').value = mktPer;
+  renderLabels();
+}
+function mktStep(d) {
+  if (!mktData) return;
+  mktPer = ((mktPer - 1 + d) % mktNper + mktNper) % mktNper + 1;
+  renderMkt();
+}
+$m('mprev').onclick = () => mktStep(-1);
+$m('mnext').onclick = () => mktStep(1);
+$m('mrange').oninput = e => { mktPer = +e.target.value; renderMkt(); };
+$m('mplay').onclick = () => {
+  if (mktPlay) { clearInterval(mktPlay); mktPlay = null; $m('mplay').textContent = '▶ play'; }
+  else { mktPlay = setInterval(() => mktStep(1), 700); $m('mplay').textContent = '⏸ pausa'; }
+};
 
 /* ---- exportación ---- */
 document.getElementById('expdf').onclick = () => window.print();
@@ -589,7 +775,8 @@ function upTip(r) {
 }
 document.getElementById('map').addEventListener('mousemove', ev => {
   const t = ev.target;
-  if (t.classList && t.classList.contains('up')) showTip(upTip(byCode[t.dataset.c]), ev);
+  if (t.classList && t.classList.contains('mkt') && t.dataset.tip) showTip(`<div>${t.dataset.tip}</div>`, ev);
+  else if (t.classList && t.classList.contains('up')) showTip(upTip(byCode[t.dataset.c]), ev);
   else if (t.dataset && t.dataset.tip) showTip(`<div>${t.dataset.tip}</div>`, ev);
   else if (!pinned) tip.style.display = 'none';
 });

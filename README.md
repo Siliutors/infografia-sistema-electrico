@@ -16,6 +16,12 @@ enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **
 - **Buscador** de las 2.932 UP de generación por código, nombre, sujeto de mercado, nudo **o unidad física**;
   filtros por tecnología y zona de regulación.
 - Exportación de la vista actual a **PNG** y a **PDF** (impresión).
+- **Capa de mercados (I90)**: el botón «📊 mercados» descarga desde el navegador el I90 diario de ESIOS
+  (archivo 34) para la fecha elegida y anima sobre el mapa la actuación de cada UP por mercado
+  (PDBF, PDVP, PHF-1/2/3, PHFC, P48, restricciones técnicas, terciaria mFRR, balance RR, bilaterales,
+  indisponibilidades) y periodo cuartohorario: azul = sube/positivo, rojo = baja/negativo,
+  Ø ∝ |MWh|, con avance por pasos o reproducción automática («play») y etiquetas de cantidades.
+  El I90 se publica con ~90 días de retraso.
 - Paneles de zonas de regulación, carteras distribuidas y enlace Península–Baleares (Rómulo).
 
 ## Actualizar los datos
