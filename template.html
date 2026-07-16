@@ -206,7 +206,7 @@ tr[data-c]{cursor:pointer}
           <g id="extra"></g>
         </svg>
         <div id="mktbar" style="display:flex">
-          <input type="date" id="mdate" title="Fecha de los datos (el I90 se publica ~90 días después)">
+          <input type="date" id="mdate" min="2025-10-01" title="Fecha de los datos, desde el 01-10-2025 (cambio de formato del I90 por Red Eléctrica); se publica ~90 días después">
           <button id="mload">Cargar I90</button>
           <select id="msel" disabled><option value="">— mercado —</option></select>
           <button id="mprev" disabled title="Periodo anterior">◀</button>
@@ -319,6 +319,9 @@ tr[data-c]{cursor:pointer}
   <p class="src" style="margin:16px 2px 0">Elaborado por <b>Sixto Siliuto Rueda</b> ·
     <a href="https://www.linkedin.com/in/sixto-siliuto-rueda-99270934/" target="_blank" rel="noopener">LinkedIn</a> ·
     <a href="https://github.com/Siliutors/infografia-sistema-electrico" target="_blank" rel="noopener">código y datos en GitHub</a></p>
+  <p class="mut" style="margin:6px 2px 0">⚠ Herramienta generada con IA (Claude — modelos Fable 5 y Opus 4.8, de Anthropic):
+  puede contener errores en algunos datos, ubicaciones o agregados. Contraste la información relevante con las
+  fuentes oficiales (ESIOS/Red Eléctrica y MITECO); no es material oficial de ninguna de ellas.</p>
 </div>
 <div id="tip"></div>
 <script>
@@ -558,7 +561,14 @@ const MKT_SHEETS = [
 const $m = id => document.getElementById(id);
 var mktZip = null, mktData = null, mktItems = null, mktPer = 1, mktNper = 96, mktPlay = null;
 MKT_SHEETS.forEach(([v, t]) => $m('msel').insertAdjacentHTML('beforeend', `<option value="${v}">${t}</option>`));
-$m('mdate').value = new Date(Date.now() - 92 * 864e5).toISOString().slice(0, 10);
+/* solo hay datos desde el 01-10-2025: ese día REE cambió el formato del I90 (periodos cuartohorarios) */
+const MKT_MIN = '2025-10-01';
+const MKT_MIN_MSG = 'Solo pueden cargarse fechas desde el 01-10-2025: ese día Red Eléctrica cambió el formato ' +
+  'del fichero I90 (periodos cuartohorarios) y esta herramienta no interpreta el formato anterior.';
+const MKT_INFO = 'Datos I90 disponibles desde el 01-10-2025 (cambio de formato de Red Eléctrica); se publican con ~90 días de retraso.';
+const _d0 = new Date(Date.now() - 92 * 864e5).toISOString().slice(0, 10);
+$m('mdate').value = _d0 < MKT_MIN ? MKT_MIN : _d0;
+$m('mstatus').textContent = MKT_INFO;
 const perLabel = p => `${String(Math.floor((p - 1) / 4)).padStart(2, '0')}:${String(((p - 1) % 4) * 15).padStart(2, '0')}`;
 const fmtV = v => (v > 0 ? '+' : '') + v.toLocaleString('es-ES', {maximumFractionDigits: 1});
 $m('zmkt').onclick = () => {
@@ -574,7 +584,7 @@ function mktClear() {
   if (mktPlay) { clearInterval(mktPlay); mktPlay = null; $m('mplay').textContent = '▶ play'; }
   mktData = mktItems = null; document.getElementById('mkt').innerHTML = '';
   gU.style.opacity = 1; gE.style.opacity = 1;
-  $m('mstatus').textContent = ''; $m('mper').textContent = '';
+  $m('mstatus').textContent = MKT_INFO; $m('mper').textContent = '';
   ['mprev', 'mnext', 'mplay', 'mrange'].forEach(x => $m(x).disabled = true);
   renderLabels();
 }
@@ -603,6 +613,7 @@ async function unzip(buf) {
 $m('mload').onclick = async () => {
   const d = $m('mdate').value;
   if (!d) { $m('mstatus').textContent = 'Elija una fecha.'; return; }
+  if (d < MKT_MIN) { $m('mstatus').textContent = MKT_MIN_MSG; return; }
   $m('mstatus').textContent = 'Descargando I90 de ' + d + ' desde api.esios.ree.es…';
   try {
     const enc = encodeURIComponent;

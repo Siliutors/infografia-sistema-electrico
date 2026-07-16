@@ -4,7 +4,7 @@ Infografía interactiva (HTML autocontenido, sin dependencias) de las **unidades
 sistema eléctrico español sobre un mapa de España, con la **red de transporte esquemática** (400/220 kV y
 enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **unidades físicas (UF)** de cada UP.
 
-**➡ Abrir `infografia_sistema_electrico_espana.html` en cualquier navegador.**
+**➡ Versión en línea: https://siliutors.github.io/infografia-sistema-electrico/** — o abrir `index.html` en cualquier navegador.
 
 ## Funcionalidades
 
@@ -21,7 +21,9 @@ enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **
   (PDBF, PDVP, PHF-1/2/3, PHFC, P48, restricciones técnicas, terciaria mFRR, balance RR, bilaterales,
   indisponibilidades) y periodo cuartohorario: azul = sube/positivo, rojo = baja/negativo,
   Ø ∝ |MWh|, con avance por pasos o reproducción automática («play») y etiquetas de cantidades.
-  El I90 se publica con ~90 días de retraso.
+  El I90 se publica con ~90 días de retraso. Solo admite fechas **desde el 01-10-2025**: ese día
+  Red Eléctrica cambió el formato del fichero (periodos cuartohorarios) y la herramienta no
+  interpreta el formato anterior.
 - Paneles de zonas de regulación, carteras distribuidas y enlace Península–Baleares (Rómulo).
 
 ## Actualizar los datos
@@ -56,3 +58,6 @@ Solo requiere Python 3.8+ (librería estándar).
   multi-instalación se sitúan en su zona aproximada (centroide ponderado por potencia).
 
 Proyecto de visualización con fines informativos; no es material oficial de REE ni del MITECO.
+
+> ⚠ **Herramienta generada con IA** (Claude — modelos Fable 5 y Opus 4.8, de Anthropic): puede contener
+> errores en algunos datos, ubicaciones o agregados. Contraste la información relevante con las fuentes oficiales.

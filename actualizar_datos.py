@@ -5,7 +5,7 @@ Actualiza los datos de la infografía del sistema eléctrico español y la regen
 Descarga:
   1. ESIOS (REE): UnidadesFisicas (81), UnidadesProgramacion (82), SujetosMercado (83)
   2. Ministerio (MITECO): exportación CSV del registro ELECTRA (RAIPRE)
-y después ejecuta build.py, que reescribe infografia_sistema_electrico_espana.html.
+y después ejecuta build.py, que reescribe index.html.
 
 Uso:  python actualizar_datos.py
 Requisitos: Python 3.8+ (solo librería estándar).
@@ -66,4 +66,4 @@ open('fecha_datos.txt', 'w', encoding='utf-8').write(fecha)
 print(f'Fecha de datos: {fecha}')
 print('Regenerando la infografía ...')
 subprocess.run([sys.executable, '-X', 'utf8', os.path.join(BASE, 'build.py')], check=True)
-print('Listo. Abra infografia_sistema_electrico_espana.html (en esta misma carpeta).')
+print('Listo. Abra index.html (en esta misma carpeta).')

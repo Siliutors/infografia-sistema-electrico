@@ -466,7 +466,7 @@ html = (html.replace('__W__', str(int(W))).replace('__H__', str(int(H)))
             .replace('__GRID__', svg_lines).replace('__NODES__', svg_nodes).replace('__CNX__', svg_cnx)
             .replace('__NLBL__', svg_nlbl + svg_ctx).replace('__FECHA__', FECHA)
             .replace('__DATA__', json.dumps(DATA, ensure_ascii=False, separators=(',', ':'))))
-OUT = os.path.join(BASE, 'infografia_sistema_electrico_espana.html')
+OUT = os.path.join(BASE, 'index.html')   # index.html para servirlo con GitHub Pages
 open(OUT, 'w', encoding='utf-8').write(html)
 # sincroniza la copia de la carpeta padre si existe (ruta habitual de consulta)
 _parent = os.path.join(os.path.dirname(BASE), 'infografia_sistema_electrico_espana.html')
