@@ -16,6 +16,11 @@ enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **
   según los **mapas de capacidad de la CNMC** (actualización mensual), más el **motivo de reserva** (concursos y
   nudos de transición justa) del fichero mensual de capacidad por nudo de REE. Verde = con capacidad para nueva
   generación, rojo = sin capacidad, anillo ámbar = nudo reservado, Ø ∝ capacidad ocupada.
+- **Tabla de nudos anexa al mapa**: los 937 nudos con búsqueda (nudo/municipio/provincia), filtros (tensión,
+  con/sin capacidad disponible, con capacidad para almacenamiento, reservados) y **ordenación por columna**
+  (ocupada, disponible MPE/MGES, almacenamiento, en tramitación, posiciones libres, UPs). Clic en una fila:
+  resalta y centra el nudo en el mapa y filtra el buscador de UPs por las unidades asociadas a ese nudo
+  (asignación estimada); clic en un nudo del mapa selecciona su fila.
 - Conectores **UP → nudo** que muestran qué plantas comparten nudo. Para las UP estimadas, el nudo se estima
   con la **subestación de distribución más cercana y su nudo de afección en transporte** (dato CNMC) o el nudo
   de transporte más próximo.

@@ -72,8 +72,11 @@ svg{display:block;width:100%;height:auto}
 .up.dim{opacity:.14}
 .up.sel{stroke:var(--ink-1);stroke-width:2}
 .up.est{fill-opacity:.42;stroke-width:.9;stroke-dasharray:1.8 1.3}
-.capnd{stroke:var(--surface-1);stroke-width:.6;opacity:.92;cursor:help}
+.capnd{stroke:var(--surface-1);stroke-width:.6;opacity:.92;cursor:pointer}
 .capnd.resv{stroke:var(--s2);stroke-width:1.3}
+.capnd.sel{stroke:var(--ink-1);stroke-width:2}
+#ntbl th{cursor:pointer;user-select:none;white-space:nowrap}
+#ntbl tr[data-i]{cursor:pointer}
 .cnx{stroke:var(--ink-3);stroke-width:.7;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
 .cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
 .up.msube{stroke:var(--s0);stroke-width:2.4;fill-opacity:.85}
@@ -228,6 +231,39 @@ tr[data-c]{cursor:pointer}
         </div>
       </div>
 
+      <div class="card" id="nudoscard"><h2>Nudos de la red de transporte · capacidad de acceso por nudo (CNMC / REE)</h2>
+        <p class="mut" style="margin:0 0 6px">Todas las cifras en <b>MW</b>, según los mapas de capacidad de la CNMC y el fichero
+        mensual de REE (<span id="capsrc3"></span>). <b>Valores informativos, no sumables entre nudos.</b>
+        Clic en una fila: resalta el nudo en el mapa (activa la capa ⚡), lo centra y filtra el buscador de UPs por ese nudo
+        (la relación UP→nudo mostrada es estimada, no oficial). Clic en las cabeceras para ordenar; «UPs» = unidades de
+        programación de esta infografía cuyo nudo conocido o estimado tiene ese nombre.</p>
+        <div class="ctrl">
+          <input type="search" id="nq" placeholder="Buscar nudo, municipio o provincia…">
+          <select id="nkv"><option value="">Tensión: todas</option></select>
+          <select id="nfil">
+            <option value="">Todos los nudos</option>
+            <option value="disp">Con capacidad disponible (generación)</option>
+            <option value="nodisp">Sin capacidad disponible</option>
+            <option value="alm">Con capacidad para almacenamiento</option>
+            <option value="res">Reservados (concurso / transición justa)</option>
+          </select>
+        </div>
+        <div class="tblwrap" style="max-height:380px">
+          <table class="zrt" id="ntbl"><thead><tr>
+            <th data-k="0" data-lbl="Nudo">Nudo</th>
+            <th data-k="4" data-lbl="Ocupada" style="text-align:right" title="Capacidad ocupada por permisos de acceso otorgados">Ocupada</th>
+            <th data-k="5" data-lbl="Disp. MPE" style="text-align:right" title="Capacidad disponible para nueva generación · criterio módulo de parque eléctrico (MPE)">Disp. MPE</th>
+            <th data-k="6" data-lbl="Disp. MGES" style="text-align:right" title="Capacidad disponible para nueva generación · criterio módulo de generación síncrono (MGES)">Disp. MGES</th>
+            <th data-k="7" data-lbl="Alm." style="text-align:right" title="Capacidad disponible para almacenamiento (MPE)">Alm.</th>
+            <th data-k="9" data-lbl="Trám." style="text-align:right" title="Capacidad admitida en curso de tramitación, pendiente de resolver">Trám.</th>
+            <th data-k="10" data-lbl="Pos." style="text-align:right" title="Posiciones físicas libres en la subestación">Pos.</th>
+            <th data-k="14" data-lbl="UPs" style="text-align:right" title="UPs de esta infografía cuyo nudo conocido o estimado tiene este nombre (estimación, no dato oficial)">UPs</th>
+            <th data-k="13" data-lbl="Reserva" title="Nudo con capacidad reservada según REE (concurso de acceso o nudo de transición justa)">Reserva</th>
+          </tr></thead><tbody id="ntb"></tbody></table>
+        </div>
+        <div class="count" id="ncount"></div>
+      </div>
+
       <div class="card"><h2>Leyenda</h2>
         <div class="leg" style="margin-bottom:8px" id="leg-tech"></div>
         <div class="leg" style="margin-bottom:8px">
@@ -296,6 +332,9 @@ tr[data-c]{cursor:pointer}
 
       <div class="card">
         <h2>Buscador de unidades de programación (generación, bombeo, almacenamiento e híbridas)</h2>
+        <div id="nodechip" style="display:none;margin-bottom:8px">
+          <span class="chip" title="Mostrando solo las UPs cuyo nudo conocido o estimado casa con el nudo seleccionado (estimación, no dato oficial) — clic para quitar el filtro">⚡ UPs del nudo <b id="nodechipn" style="margin:0 4px"></b> (asignación estimada) ✕</span>
+        </div>
         <div class="chips" id="chips"></div>
         <div class="ctrl">
           <input type="search" id="q" placeholder="Buscar por UP, unidad física (UF), sujeto de mercado o nudo…">
@@ -442,7 +481,7 @@ function renderCap() {
     .sort((a, b) => (b[0][4] || 0) - (a[0][4] || 0))   // grandes primero: los pequeños quedan encima
     .map(([n, i]) => {
       const rad = Rc(n[4]);
-      return `<circle class="capnd${n[13] ? ' resv' : ''}" data-i="${i}"
+      return `<circle class="capnd${n[13] ? ' resv' : ''}${i === selNode ? ' sel' : ''}" data-i="${i}"
         data-r0="${rad.toFixed(2)}" cx="${n[2]}" cy="${n[3]}" r="${(rad * mk).toFixed(2)}"
         fill="${(n[5] > 0 || n[6] > 0) ? 'var(--s1)' : 'var(--s5)'}"/>`;
     }).join('');
@@ -458,6 +497,92 @@ capbtn.onclick = () => {
   document.getElementById('capleg').style.display = showCap ? '' : 'none';
   renderCap();
 };
+
+/* ---- tabla de nudos: exploración de la capacidad disponible y ocupada ---- */
+const ntb = document.getElementById('ntb'), nqI = document.getElementById('nq'),
+      nkvS = document.getElementById('nkv'), nfilS = document.getElementById('nfil'),
+      ncnt = document.getElementById('ncount');
+let nsortK = 4, nsortD = -1, selNode = -1;
+const _nn = s => (s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/\s*\(APROX\.\)/g, '').replace(/\s+\d{2,3}\s*KV$/, '').trim();
+/* UPs cuyo nudo conocido (curado) o estimado casa con el nombre de cada nudo:
+   exacto para las estimadas (mismo listado CNMC) y por contención de nombres para las
+   curadas (la red esquemática usa nombres cortos: «Almaraz» vs «ALMARAZ CN») */
+let nodeSel = null;
+const nodeUPs = DATA.cnodes.map(() => []);
+{
+  const byKey = {};
+  rows.forEach(r => { const k = _nn(r.en); if (k) (byKey[k] = byKey[k] || []).push(r.c); });
+  const cur = rows.filter(r => r.nudo).map(r => [_nn(r.nudo), r.c]);
+  DATA.cnodes.forEach((n, i) => {
+    const base = _nn(n[0]), set = new Set(byKey[base] || []);
+    for (const [k, c] of cur) if (k && (base.includes(k) || k.includes(base))) set.add(c);
+    nodeUPs[i] = set;
+    n[14] = set.size;
+  });
+}
+function nodeClear() {
+  nodeSel = null; selNode = -1;
+  document.querySelectorAll('.capnd.sel').forEach(el => el.classList.remove('sel'));
+  document.getElementById('nodechip').style.display = 'none';
+  apply(); napply();
+}
+document.getElementById('nodechip').onclick = nodeClear;
+[...new Set(DATA.cnodes.map(n => n[1]))].sort((a, b) => b - a).forEach(kv =>
+  nkvS.insertAdjacentHTML('beforeend', `<option value="${kv}">${kv} kV</option>`));
+document.getElementById('capsrc3').textContent = capSrc;
+if (!DATA.cnodes.length) document.getElementById('nudoscard').style.display = 'none';
+function napply() {
+  const s = _nn(nqI.value), kv = nkvS.value, f = nfilS.value;
+  let list = DATA.cnodes.map((n, i) => [n, i]).filter(([n]) =>
+    (!s || _nn(n[0]).includes(s) || _nn(n[11]).includes(s) || _nn(n[12]).includes(s))
+    && (!kv || n[1] === +kv)
+    && (f !== 'disp' || n[5] > 0 || n[6] > 0) && (f !== 'nodisp' || (n[5] <= 0 && n[6] <= 0))
+    && (f !== 'alm' || n[7] > 0 || n[8] > 0) && (f !== 'res' || n[13] > 0));
+  list.sort((a, b) => nsortK === 0
+    ? nsortD * a[0][0].localeCompare(b[0][0], 'es')
+    : nsortD * ((a[0][nsortK] || 0) - (b[0][nsortK] || 0)));
+  document.querySelectorAll('#ntbl th').forEach(th =>
+    th.textContent = th.dataset.lbl + (+th.dataset.k === nsortK ? (nsortD < 0 ? ' ▾' : ' ▴') : ''));
+  ntb.innerHTML = list.map(([n, i]) => `
+    <tr data-i="${i}"${i === selNode ? ' class="sel"' : ''}>
+    <td><b>${n[0]}</b> <span class="mut">${n[1]} kV</span><div class="mut">${n[11]} (${n[12]})</div></td>
+    <td class="num">${fmt(n[4])}</td><td class="num">${fmt(n[5])}</td><td class="num">${fmt(n[6])}</td>
+    <td class="num">${fmt(n[7])}</td><td class="num">${fmt(n[9])}</td><td class="num">${n[10]}</td>
+    <td class="num">${n[14] || ''}</td><td>${n[13] ? DATA.resk[n[13]] : ''}</td></tr>`).join('');
+  ncnt.textContent = `${fmt(list.length)} de ${fmt(DATA.cnodes.length)} nudos · cifras en MW · ` +
+    `${capSrc} · valores informativos, no sumables entre nudos`;
+}
+function selectNode(i, zoom = true) {
+  if (i === selNode) { nodeClear(); return; }   /* segundo clic: deselecciona y quita el filtro */
+  selNode = i;
+  const n = DATA.cnodes[i];
+  if (!showCap) capbtn.click();     /* activa la capa ⚡ si estaba oculta */
+  document.querySelectorAll('.capnd.sel').forEach(el => el.classList.remove('sel'));
+  const el = gC.querySelector(`.capnd[data-i="${i}"]`);
+  if (el) el.classList.add('sel');
+  if (zoom) { zk = Math.max(zk, 5); ztx = VBW / 2 - zk * n[2]; zty = VBH / 2 - zk * n[3]; applyZoom(); }
+  /* filtra el buscador de UPs por las UPs asociadas (estimadas) a este nudo */
+  nodeSel = {name: `${n[0]} ${n[1]} kV`, codes: nodeUPs[i]};
+  document.getElementById('nodechipn').textContent = nodeSel.name;
+  document.getElementById('nodechip').style.display = '';
+  apply(); napply();
+  const row = ntb.querySelector(`tr[data-i="${i}"]`);
+  if (row) row.scrollIntoView({block: 'nearest'});
+}
+nqI.oninput = napply; nkvS.onchange = napply; nfilS.onchange = napply;
+document.querySelector('#ntbl thead').addEventListener('click', ev => {
+  const th = ev.target.closest('th'); if (!th) return;
+  const k = +th.dataset.k;
+  if (k === nsortK) nsortD = -nsortD;
+  else { nsortK = k; nsortD = k === 0 ? 1 : -1; }
+  napply();
+});
+ntb.addEventListener('click', ev => {
+  const tr = ev.target.closest('tr[data-i]'); if (!tr) return;
+  selectNode(+tr.dataset.i);
+});
+napply();
 
 /* ---- zoom y paneo ---- */
 const map = document.getElementById('map');
@@ -863,6 +988,7 @@ function apply() {
   const s = q.value.trim().toUpperCase(), z = zrsel.value;
   shown = rows.filter(r => on.has(r.t)
     && (!z || r.zr === z)
+    && (!nodeSel || nodeSel.codes.has(r.c))
     && (!s || r.q.includes(s) || r.uq.includes(s)));
   tb.innerHTML = shown.slice(0, 500).map(r => `
     <tr data-c="${r.c}"><td><b>${r.c}</b>${locSet.has(r.c) ? ' 📍' : r.est ? ' ◈' : distSet.has(r.c) ? ' ◇' : ''}</td>
