@@ -72,6 +72,8 @@ svg{display:block;width:100%;height:auto}
 .up.dim{opacity:.14}
 .up.sel{stroke:var(--ink-1);stroke-width:2}
 .up.est{fill-opacity:.42;stroke-width:.9;stroke-dasharray:1.8 1.3}
+.capnd{stroke:var(--surface-1);stroke-width:.6;opacity:.92;cursor:help}
+.capnd.resv{stroke:var(--s2);stroke-width:1.3}
 .cnx{stroke:var(--ink-3);stroke-width:.7;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
 .cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
 .up.msube{stroke:var(--s0);stroke-width:2.4;fill-opacity:.85}
@@ -171,7 +173,9 @@ tr[data-c]{cursor:pointer}
     <button id="themebtn" title="Cambiar entre tema automático, claro y oscuro">🌓 Tema: auto</button>
   </div>
   <p class="sub">Elaborado con los ficheros públicos de ESIOS / Red Eléctrica de España (unidades de programación,
-  unidades físicas y sujetos de mercado) y el registro ELECTRA/RAIPRE del Ministerio (MITECO). <b>Última actualización de los datos: __FECHA__</b> (ejecute actualizar_datos.py para refrescarlos).
+  unidades físicas y sujetos de mercado), el registro ELECTRA/RAIPRE del Ministerio (MITECO) y los datos de
+  capacidad de acceso por nudo de los mapas de capacidad de la CNMC y del fichero mensual de REE.
+  <b>Última actualización de los datos: __FECHA__</b> (todas las fuentes se refrescan con un único script: actualizar_datos.py).
   Trazado de la red y posición de los nudos <b>esquemáticos y simplificados</b>; las ubicaciones marcadas con ⌾ son zonas
   aproximadas (centroide ponderado por potencia de las unidades físicas agrupadas).</p>
 
@@ -184,6 +188,7 @@ tr[data-c]{cursor:pointer}
           <button id="zreset" title="Vista completa">⤢</button>
           <button id="zest" title="Mostrar u ocultar las UPs con ubicación estimada (centroide de sus UFs por comunidad)">◌ estimadas</button>
           <button id="zlbl" title="Mostrar u ocultar los códigos de las UPs (aparecen más al hacer zoom)">🏷 códigos</button>
+          <button id="zcap" title="Capacidad de acceso por nudo de la red de transporte (mapas de capacidad de la CNMC y fichero mensual de REE)">⚡ capacidad</button>
           <button id="zmkt" title="Cargar el I90 diario de ESIOS y visualizar la actuación de cada UP por mercado y periodo">📊 mercados</button>
           <button id="expng" title="Descargar la vista actual del mapa como imagen PNG">🖼 PNG</button>
           <button id="expdf" title="Exportar a PDF mediante el diálogo de impresión">🖨 PDF</button>
@@ -197,6 +202,7 @@ tr[data-c]{cursor:pointer}
             <g id="cnx">__CNX__</g>
             <g id="nodes">__NODES__</g>
             <g id="nlbl">__NLBL__</g>
+            <g id="cap"></g>
             <g id="este"></g>
             <g id="ups"></g>
             <g id="mkt"></g>
@@ -239,6 +245,13 @@ tr[data-c]{cursor:pointer}
           <span class="it"><svg class="lin" height="16"><circle cx="13" cy="8" r="4.5" style="fill:var(--ink-3);fill-opacity:.4;stroke:var(--ink-3);stroke-dasharray:1.8 1.3"/></svg>◈ UP con ubicación estimada (centroide de sus UFs; se dibujan las ≥10 MW con ≥25 % de potencia identificada — conmutable con «◌ estimadas»)</span>
           <span class="it"><svg class="lin" height="8"><line x1="0" y1="4" x2="26" y2="4" style="stroke:var(--ink-3);stroke-dasharray:2 2"/></svg>conexión UP → nudo (esquemática)</span>
         </div>
+        <div class="leg" id="capleg" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--grid)">
+          <span class="it"><b>⚡ Capacidad de acceso por nudo (CNMC/REE)</b></span>
+          <span class="it"><span class="dot" style="background:var(--s1)"></span>con capacidad disponible para nueva generación</span>
+          <span class="it"><span class="dot" style="background:var(--s5)"></span>sin capacidad disponible</span>
+          <span class="it"><span class="dot" style="background:transparent;border:2px solid var(--s2)"></span>nudo reservado (concurso / transición justa)</span>
+          <span class="it">Ø ∝ capacidad ocupada (permisos otorgados) · <span id="capfch"></span></span>
+        </div>
       </div>
 
       <div class="card"><h2>Método y fuentes</h2>
@@ -250,12 +263,22 @@ tr[data-c]{cursor:pointer}
         información pública de cada central; las UP multi-instalación se sitúan en su zona aproximada por potencia ponderada.<br>
         · <b>Red de transporte</b>: esquema simplificado a partir del mapa de la red de transporte de REE. El trazado no representa
         la geometría real de las líneas ni la totalidad de la malla (en especial la de 220 kV).<br>
-        · La asignación UP→nudo no es un dato público de ESIOS: el nudo indicado es el de conexión conocido o el más próximo (aprox.);
-        las líneas punteadas UP→nudo son esquemáticas.<br>
+        · <b>Nudos y capacidad de acceso (capa ⚡)</b>: servicios de datos públicos de los <i>mapas de capacidad de acceso</i> de la
+        CNMC (Circular informativa 6/2025; posición oficial de cada nudo, capacidad ocupada/disponible/en tramitación y posiciones,
+        <span id="capfch2"></span>) y fichero mensual de capacidad por nudo del operador del sistema (REE<span id="capfch3"></span>),
+        que añade el motivo de reserva de capacidad (concursos y nudos de transición justa). <b>Advertencia CNMC</b>: los valores de
+        capacidad son informativos, dependen unos nudos de otros y <b>no son directamente sumables</b>; para solicitudes reales diríjase
+        al gestor de red correspondiente.<br>
+        · <b>La asignación UP→nudo no es información pública</b> (la gestión de los permisos de acceso es confidencial): el nudo
+        indicado en cada UP es el de conexión conocido públicamente o una estimación por proximidad, y las líneas punteadas UP→nudo
+        son esquemáticas. Ningún nudo mostrado debe interpretarse como el punto de conexión real de una instalación.<br>
         · <b>UPs con ubicación estimada (◈)</b>: posición calculada como centroide ponderado por potencia de sus unidades físicas
         identificadas por comunidad autónoma en el registro ELECTRA/RAIPRE, con dispersión aleatoria dentro de la zona — es una
-        aproximación orientativa, no el emplazamiento real; su nudo indicado es simplemente el 400 kV más próximo.<br>
-        · Canarias: sistema no peninsular, sin unidades de programación de mercado en este listado (se muestra atenuada).</p>
+        aproximación orientativa, no el emplazamiento real. Su nudo estimado se calcula sobre esa posición aproximada: subestación
+        de distribución más cercana y su <i>nudo de afección</i> en la red de transporte (dato CNMC), o el nudo de transporte más
+        próximo si queda más cerca — doble estimación, solo orientativa.<br>
+        · Canarias: sistema no peninsular, sin unidades de programación de mercado en este listado (se muestra atenuada;
+        sus nudos de la capa ⚡ se trasladan con el inset).</p>
       </div>
     </div>
 
@@ -343,7 +366,7 @@ tbtn.onclick = () => setTheme(MODES[(MODES.indexOf(tmode) + 1) % 3]);
 const NAME = DATA.groups.map(g => g[0]);
 const rows = DATA.rows, byCode = {}; rows.forEach(r => byCode[r.c] = r);
 rows.forEach(r => {
-  r.q = [r.c, r.d, r.sm, r.smn || '', r.nudo || '', r.site || ''].join('¦').toUpperCase();
+  r.q = [r.c, r.d, r.sm, r.smn || '', r.nudo || '', r.site || '', r.en || ''].join('¦').toUpperCase();
   r.uq = (r.ufs || []).map(u => u[0]).join('¦').toUpperCase();
 });
 const locSet = new Set(DATA.located), distSet = new Set(DATA.dist);
@@ -360,6 +383,7 @@ document.getElementById('tiles').innerHTML = [
   ['Zonas de regulación', fmt(DATA.zr.length)],
   ['UPs geolocalizadas en el mapa', fmt(DATA.located.length)],
   ['UPs con ubicación estimada', fmt(DATA.nest)],
+  ...(DATA.cnodes.length ? [['Nudos de transporte con capacidad publicada (CNMC)', fmt(DATA.cnodes.length)]] : []),
   ['Última actualización de datos', DATA.fecha]
 ].map(t => `<div class="tile"><b>${t[1]}</b><span>${t[0]}</span></div>`).join('');
 
@@ -393,6 +417,48 @@ document.getElementById('zest').onclick = () => {
   document.getElementById('zest').style.opacity = showEst ? 1 : .45;
 };
 
+/* ---- capa de capacidad de acceso por nudo (mapas de capacidad CNMC + fichero mensual REE) ---- */
+const gC = document.getElementById('cap'), capbtn = document.getElementById('zcap');
+let showCap = false;
+const CMAX = Math.max(1, ...DATA.cnodes.map(n => n[4] || 0));
+const Rc = v => 1.5 + 7 * Math.sqrt(Math.max(v, 0) / CMAX);
+const fmt1 = v => (v || 0).toLocaleString('es-ES', {maximumFractionDigits: 1});
+const capSrc = `CNMC (datos de ${DATA.capfecha || 's/f'})` + (DATA.reefecha ? ` · REE (${DATA.reefecha})` : '');
+function capTip(n) {
+  const disp = (n[5] > 0 || n[6] > 0);
+  return `<b>Nudo ${n[0]} ${n[1]} kV</b> · ${n[11]} (${n[12]})<br>` +
+    `Capacidad ocupada (permisos otorgados): <b>${fmt1(n[4])} MW</b><br>` +
+    `Disponible para generación: <b>${fmt1(n[5])}</b> MW (MPE) · ${fmt1(n[6])} MW (MGES)<br>` +
+    `Disponible para almacenamiento: ${fmt1(n[7])} MW (MPE) · ${fmt1(n[8])} MW (MGES)<br>` +
+    `En tramitación: ${fmt1(n[9])} MW · Posiciones libres: ${n[10]}<br>` +
+    (n[13] ? `<b>Nudo reservado</b>: ${DATA.resk[n[13]]} (según REE)<br>` : '') +
+    `<span class=k>${capSrc} · valores informativos, no sumables entre nudos · ` +
+    `la conexión de cada planta a su nudo no es información pública</span>`;
+}
+function renderCap() {
+  if (!showCap) { gC.innerHTML = ''; return; }
+  const mk = Math.pow(zk, -0.6);
+  gC.innerHTML = DATA.cnodes.map((n, i) => [n, i])
+    .sort((a, b) => (b[0][4] || 0) - (a[0][4] || 0))   // grandes primero: los pequeños quedan encima
+    .map(([n, i]) => {
+      const rad = Rc(n[4]);
+      return `<circle class="capnd${n[13] ? ' resv' : ''}" data-i="${i}"
+        data-r0="${rad.toFixed(2)}" cx="${n[2]}" cy="${n[3]}" r="${(rad * mk).toFixed(2)}"
+        fill="${(n[5] > 0 || n[6] > 0) ? 'var(--s1)' : 'var(--s5)'}"/>`;
+    }).join('');
+}
+if (!DATA.cnodes.length) capbtn.style.display = 'none';
+document.getElementById('capfch').textContent = capSrc;
+const _f2 = document.getElementById('capfch2'), _f3 = document.getElementById('capfch3');
+if (_f2) _f2.textContent = 'datos de ' + (DATA.capfecha || 's/f') + ', actualización mensual';
+if (_f3) _f3.textContent = DATA.reefecha ? ', fichero de ' + DATA.reefecha : '';
+capbtn.onclick = () => {
+  showCap = !showCap;
+  capbtn.classList.toggle('on', showCap);
+  document.getElementById('capleg').style.display = showCap ? '' : 'none';
+  renderCap();
+};
+
 /* ---- zoom y paneo ---- */
 const map = document.getElementById('map');
 const VP = document.getElementById('viewport');
@@ -410,6 +476,7 @@ function applyZoom() {
   map.style.setProperty('--fs', Math.pow(zk, -0.75).toFixed(3));
   document.querySelectorAll('.up').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
   document.querySelectorAll('.multi-ring').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
+  document.querySelectorAll('.capnd').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
   const nds = document.querySelectorAll('#nodes g');
   const nlist = Object.values(DATA.nodes);
   nds.forEach((el, i) => { if (nlist[i]) el.setAttribute('transform', `translate(${nlist[i][0]},${nlist[i][1]}) scale(${mk.toFixed(3)})`); });
@@ -849,12 +916,13 @@ function upTip(r) {
   ${r.site ? `<div><span class="k">Emplazamiento:</span> ${r.site}${r.multi ? ' <b>(zona aprox. · centroide ponderado)</b>' : ''}</div>` : ''}
   ${r.nudo ? `<div><span class="k">Nudo (esquemático):</span> ${r.nudo}</div>` : ''}
   ${!r.nudo && r.est ? `<div><span class="k">Ubicación estimada</span> (centroide de sus UFs por comunidad, ${r.ep}% de su potencia identificada)</div>
-  <div><span class="k">Nudo 400 kV más próximo (aprox.):</span> ${r.en}</div>` : ''}
+  <div><span class="k">Nudo de transporte estimado:</span> ${r.en || '—'}${r.evia ? `<br><span class="k">vía subest. de distribución más próxima:</span> ${r.evia}` : ' (más próximo)'}</div>` : ''}
   ${sh}${ufs}`;
 }
 document.getElementById('map').addEventListener('mousemove', ev => {
   const t = ev.target;
   if (t.classList && t.classList.contains('mkt') && t.dataset.tip) showTip(`<div>${t.dataset.tip}</div>`, ev);
+  else if (t.classList && t.classList.contains('capnd')) showTip(`<div>${capTip(DATA.cnodes[+t.dataset.i])}</div>`, ev);
   else if (t.classList && t.classList.contains('up')) showTip(upTip(byCode[t.dataset.c]), ev);
   else if (t.dataset && t.dataset.tip) showTip(`<div>${t.dataset.tip}</div>`, ev);
   else if (!pinned) tip.style.display = 'none';
@@ -872,7 +940,7 @@ function renderUFmarks() {
   const perCA = {};
   let svg = '';
   if (r.est && !locSet.has(r.c)) {
-    const nd = DATA.nodes[r.en];
+    const nd = r.enx !== undefined ? [r.enx, r.eny] : DATA.nodes[r.en];
     if (nd) svg += `<line class="cnx2" x1="${r.ex}" y1="${r.ey}" x2="${nd[0]}" y2="${nd[1]}"/>`;
   }
   for (const u of (r.ufs || [])) {
@@ -913,7 +981,7 @@ function selectUP(c) {
      · Sujeto: <b>${r.sm}</b>${r.smn ? ' (' + r.smn + ')' : ''} · Zona de regulación: <b>${r.zr}</b>
      ${r.site ? '<br>Emplazamiento: ' + r.site + (r.multi ? ' <b>(zona aprox. · centroide ponderado)</b>' : '') : ''}
      ${r.nudo ? ' · Nudo (esquemático): ' + r.nudo : ''}
-     ${!r.nudo && r.est ? `<br><b>Ubicación estimada</b> por el centroide de sus UFs identificadas (${r.ep}% de su potencia) · Nudo 400 kV más próximo (aprox.): <b>${r.en}</b>` : ''}
+     ${!r.nudo && r.est ? `<br><b>Ubicación estimada</b> por el centroide de sus UFs identificadas (${r.ep}% de su potencia) · Nudo de transporte estimado: <b>${r.en || '—'}</b>${r.evia ? ` (vía subest. de distribución ${r.evia} — dato de afección CNMC; estimación, no el punto de conexión real)` : ' (más próximo, aprox.)'}` : ''}
      ${(r.shared || []).length ? '<br>Comparte nudo con: ' + r.shared.join(', ') : ''}`;
   document.getElementById('det-note').textContent =
     `${r.uf} unidades físicas asociadas; ${nloc} situadas en el mapa (◆) a nivel de comunidad autónoma, cruzando su ` +

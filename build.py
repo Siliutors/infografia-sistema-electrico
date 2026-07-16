@@ -327,6 +327,75 @@ def uf_ca(rec):
         if p: return p
     return None
 
+# ---------- nudos oficiales y capacidad de acceso (CNMC / REE) ----------
+# nudos_transporte.json / nudos_distribucion.json: capas ArcGIS de los mapas de capacidad de la
+# CNMC (descargadas por actualizar_datos.py). ree_capacidad.csv: fichero mensual GRT de REE.
+# Si faltan, se mantiene el comportamiento anterior (nudo 400 kV esquemático más próximo).
+def _load(f):
+    try: return json.load(open(f, encoding='utf-8'))
+    except OSError: return None
+_NT, _ND = _load('nudos_transporte.json'), _load('nudos_distribucion.json')
+try: REE_CAP_FECHA = open('ree_capacidad_fecha.txt', encoding='utf-8').read().strip()
+except OSError: REE_CAP_FECHA = ''
+CAP_PERIODO = (_NT or {}).get('periodo', '')
+
+def _mapll(lat, lon):  # Canarias al inset (mismo traslado que el TopoJSON: +7.9, +4.6)
+    return (lat + 7.9, lon + 4.6) if lat < 30 else (lat, lon)
+def _nkey(n, kv): return (_norm(str(n)), int(kv))
+_RE_NUDO = re.compile(r'(.+?)\s*(\d{2,3})$')   # "LASTRAS 400" o "CARTUJA220" -> (nombre, kV)
+
+# REE: capacidad otorgada GEN/ALM y motivo de reserva (concurso / nudo de transición justa)
+RES_KINDS = ['', 'Concurso', 'NTJ', 'Posible concurso']
+REE_X = {}
+try:
+    for _r in list(csv.reader(open('ree_capacidad.csv', encoding='utf-8-sig'), delimiter=';'))[3:]:
+        if len(_r) < 67 or not _r[0].strip(): continue
+        _m = _RE_NUDO.match(_r[0].strip())
+        if _m:
+            REE_X[_nkey(_m.group(1), _m.group(2))] = (mw(_r[26]), mw(_r[27]), _r[66].strip())
+except OSError:
+    pass
+
+# capa embebida en el HTML + malla espacial para asignar nudo por proximidad
+CNODES, _cn_pos, _tgrid, _dgrid = [], {}, {}, {}
+_CELL = 30.0  # celda de la malla espacial (~0,5 grados)
+def _cell(x, y): return (int(x // _CELL), int(y // _CELL))
+if _NT:
+    for nd in _NT['nudos']:
+        x, y = XY(*_mapll(nd['lat'], nd['lon']))
+        nk, disp = _nkey(nd['n'], nd['kv']), f"{nd['n']} {nd['kv']} kV"
+        _cn_pos[nk] = (x, y, disp)
+        _tgrid.setdefault(_cell(x, y), []).append((x, y, disp))
+        og, oa, res = REE_X.get(nk, (None, None, ''))
+        r1 = lambda v: round(v or 0, 1)
+        CNODES.append([nd['n'], nd['kv'], x, y, r1(nd['ocu']), r1(nd['dmpe']), r1(nd['dmges']),
+                       r1(nd['ampe']), r1(nd['amges']), r1(nd['tram']), nd['plib'] or 0,
+                       nd['muni'], nd['prov'],
+                       RES_KINDS.index(res) if res in RES_KINDS else 0])
+if _ND and _cn_pos:
+    for sb in _ND['subestaciones']:
+        _m = _RE_NUDO.match(sb['nudo']) if sb['nudo'] else None
+        if not _m or _nkey(_m.group(1), _m.group(2)) not in _cn_pos: continue
+        x, y = XY(*_mapll(sb['lat'], sb['lon']))
+        ges = (sb['ges'] or '').split()[0].strip(',') if sb['ges'] else ''
+        _dgrid.setdefault(_cell(x, y), []).append(
+            (x, y, sb['n'], ges, sb['muni'], _nkey(_m.group(1), _m.group(2))))
+
+def _nearest(grid, x, y):
+    """Elemento más cercano en una malla espacial, buscando por anillos de celdas."""
+    cx, cy = _cell(x, y); best = bd = None; ring = 0
+    while ring < 60:
+        for gx in range(cx - ring, cx + ring + 1):
+            for gy in range(cy - ring, cy + ring + 1):
+                if max(abs(gx - cx), abs(gy - cy)) != ring: continue
+                for it in grid.get((gx, gy), ()):
+                    d = (it[0] - x) ** 2 + (it[1] - y) ** 2
+                    if bd is None or d < bd: bd, best = d, it
+        if bd is not None and (ring - 1) * _CELL >= math.sqrt(bd):
+            break   # los anillos exteriores ya no pueden contener nada más cercano
+        ring += 1
+    return best, (math.sqrt(bd) if bd is not None else None)
+
 # ---------- datos de UPs ----------
 ufs_by_up, n_ca_match = {}, 0
 for r in UF:
@@ -389,7 +458,7 @@ for node, lst in by_node.items():
 # ---------- ubicación estimada de UPs agregadas (centroide ponderado de UFs por comunidad) ----------
 import hashlib
 N400 = {n: XY(la, lo) for n, (la, lo, kv) in NODES.items() if kv == 400 and '(' not in n}
-n_est = 0
+n_est = n_via_dist = 0
 for row in rows:
     if 'x' in row: continue
     locuf = [u for u in row['ufs'] if u[2] >= 0]
@@ -401,9 +470,21 @@ for row in rows:
     lat += ((h & 0xFFF) / 4095 - 0.5) * 0.85          # jitter determinista para no apilar
     lon += (((h >> 12) & 0xFFF) / 4095 - 0.5) * 1.1
     ex, ey = XY(lat, lon)
-    en = min(N400, key=lambda n: (N400[n][0] - ex) ** 2 + (N400[n][1] - ey) ** 2)
     pct = round(100 * sum(u[1] for u in locuf) / row['mw']) if row['mw'] else 100
-    row.update(ex=ex, ey=ey, en=en, ep=min(pct, 100), est=1)
+    row.update(ex=ex, ey=ey, ep=min(pct, 100), est=1)
+    if _tgrid:
+        # nudo estimado: subestación de distribución más cercana -> su nudo de afección en la
+        # red de transporte (dato CNMC); si un nudo de transporte está aún más cerca, ese
+        tn, td = _nearest(_tgrid, ex, ey)
+        dn, dd = _nearest(_dgrid, ex, ey) if _dgrid else (None, None)
+        if dn is not None and (td is None or dd < td):
+            nx, ny, disp = _cn_pos[dn[5]]
+            row.update(en=disp, enx=nx, eny=ny, evia=f'{dn[2]} · {dn[4]} ({dn[3]})')
+            n_via_dist += 1
+        elif tn is not None:
+            row.update(en=tn[2], enx=round(tn[0], 1), eny=round(tn[1], 1))
+    else:
+        row['en'] = min(N400, key=lambda n: (N400[n][0] - ex) ** 2 + (N400[n][1] - ey) ** 2)
     n_est += 1
 
 # conectores UP situada -> nudo (muestra qué plantas comparten nudo)
@@ -420,7 +501,8 @@ DATA = dict(rows=rows, located=[r['c'] for r in located], dist=[r['c'] for r in 
             zr=zr_list, szr=[szr[0], round(szr[1])], enl=enl,
             nodes={n: list(XY(la, lo)) + [kv] for n, (la, lo, kv) in NODES.items()},
             canames=CA_LIST, capos=[list(XY(la, lo)) for la, lo in CA_POS.values()],
-            fecha=FECHA, ufmatch=[n_ca_match, len(UF)], nest=n_est)
+            fecha=FECHA, ufmatch=[n_ca_match, len(UF)], nest=n_est,
+            cnodes=CNODES, capfecha=CAP_PERIODO, reefecha=REE_CAP_FECHA, resk=RES_KINDS)
 
 # ---------- SVG estático ----------
 def line_svg(pairs, cls):
@@ -474,4 +556,6 @@ if os.path.isfile(_parent):
     import shutil; shutil.copyfile(OUT, _parent); print('->', _parent)
 print('OK', W, H, 'rows', len(rows), 'located', len(located), 'dist', len(distributed),
       'UF con CCAA', n_ca_match, '/', len(UF), 'kb', len(html) // 1024)
+print('nudos CNMC', len(CNODES), f'(datos {CAP_PERIODO} · REE {REE_CAP_FECHA})',
+      '| UP estimadas', n_est, f'({n_via_dist} con nudo vía subestación de distribución)')
 print('->', OUT)
