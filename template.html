@@ -93,6 +93,7 @@ svg{display:block;width:100%;height:auto}
 .mapbtns button{background:var(--surface-1);color:var(--ink-1);border:1px solid var(--axis);
   border-radius:7px;min-width:30px;height:28px;padding:0 9px;font:13px system-ui,sans-serif;cursor:pointer}
 .mapbtns button:hover{border-color:var(--ink-2)}
+.mapbtns button.on{border-color:var(--s0);color:var(--s0);font-weight:600}
 #map{cursor:grab;touch-action:none}
 #map.panning{cursor:grabbing}
 @media print{
@@ -155,8 +156,6 @@ tr[data-c]{cursor:pointer}
   Trazado de la red y posición de los nudos <b>esquemáticos y simplificados</b>; las ubicaciones marcadas con ⌾ son zonas
   aproximadas (centroide ponderado por potencia de las unidades físicas agrupadas).</p>
 
-  <div class="tiles" id="tiles"></div>
-
   <div class="layout">
     <div>
       <div class="card mapcard">
@@ -187,7 +186,7 @@ tr[data-c]{cursor:pointer}
           </g>
           <g id="extra"></g>
         </svg>
-        <div id="mktbar" style="display:none">
+        <div id="mktbar" style="display:flex">
           <input type="date" id="mdate" title="Fecha de los datos (el I90 se publica ~90 días después)">
           <button id="mload">Cargar I90</button>
           <select id="msel" disabled><option value="">— mercado —</option></select>
@@ -196,8 +195,8 @@ tr[data-c]{cursor:pointer}
           <button id="mnext" disabled title="Periodo siguiente">▶</button>
           <button id="mplay" disabled title="Reproducir la evolución de los periodos">▶ play</button>
           <span id="mper" style="min-width:88px;font-variant-numeric:tabular-nums"></span>
-          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s0)"></span>borde: sube / +</span>
-          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s5)"></span>borde: baja / −</span>
+          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s0)"></span>borde azul = subir (+)</span>
+          <span class="it"><span class="dot" style="background:transparent;border:2.5px solid var(--s5)"></span>borde rojo = bajar (−)</span>
           <span class="mut">relleno = tecnología · Ø ∝ |MWh|</span>
           <button id="mexit" title="Cerrar la capa de mercados">✕</button>
           <div id="mstatus" class="mut" style="flex-basis:100%"></div>
@@ -295,6 +294,8 @@ tr[data-c]{cursor:pointer}
       </div>
     </div>
   </div>
+
+  <div class="tiles" id="tiles" style="margin:6px 0 0"></div>
 </div>
 <div id="tip"></div>
 <script>
@@ -501,8 +502,11 @@ const fmtV = v => (v > 0 ? '+' : '') + v.toLocaleString('es-ES', {maximumFractio
 $m('zmkt').onclick = () => {
   const vis = $m('mktbar').style.display !== 'none';
   $m('mktbar').style.display = vis ? 'none' : 'flex';
+  $m('zmkt').classList.toggle('on', !vis);
   if (vis) mktClear();
 };
+/* la aplicación arranca con la capa de mercados activada */
+$m('zmkt').classList.add('on');
 $m('mexit').onclick = () => { $m('mktbar').style.display = 'none'; mktClear(); };
 function mktClear() {
   if (mktPlay) { clearInterval(mktPlay); mktPlay = null; $m('mplay').textContent = '▶ play'; }
