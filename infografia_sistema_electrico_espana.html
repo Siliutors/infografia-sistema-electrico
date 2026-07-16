@@ -49,6 +49,7 @@ h1{font-size:21px;margin:0 0 2px;font-weight:650}
 .tile b{display:block;font-size:20px;font-weight:650}
 .tile span{font-size:11px;color:var(--ink-2)}
 .layout{display:grid;grid-template-columns:minmax(640px,1.55fr) minmax(420px,1fr);gap:16px;align-items:start}
+.layout>div{min-width:0}  /* evita que el contenido mínimo de las tablas desborde el track del grid */
 .card{background:var(--surface-1);border:1px solid var(--ring);border-radius:10px;padding:12px 14px;margin-bottom:14px}
 .card h2{font-size:12.5px;margin:0 0 8px;font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2)}
 svg{display:block;width:100%;height:auto}
@@ -141,7 +142,25 @@ tr[data-c]{cursor:pointer}
 .src a{color:inherit}
 .lin{display:inline-block;vertical-align:middle;width:26px;margin-right:6px}
 .count{font-size:11.5px;color:var(--ink-3);margin:6px 2px}
-@media (max-width:1100px){.layout{grid-template-columns:1fr}}
+@media (max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:720px){
+  .viz-root{padding:12px 10px 28px}
+  h1{font-size:16px}
+  .sub{font-size:11.5px}
+  #themebtn{padding:5px 9px;font-size:12px}
+  .card{padding:10px}
+  .layout{gap:12px}
+  .mapbtns{position:static;justify-content:flex-end;flex-wrap:wrap;margin:0 0 8px}
+  .tiles .tile{flex:1 1 40%;min-width:0}
+  .ctrl{flex-wrap:wrap}
+  .tblwrap{max-height:340px}
+  /* 16px evita el zoom automático de iOS al enfocar campos */
+  input[type=search],select,#mktbar input[type=date],#mktbar select{font-size:16px}
+}
+@media (pointer:coarse){
+  /* táctil: un dedo desplaza la página; el mapa se maneja con dos dedos */
+  #map{touch-action:pan-y}
+}
 @media print{.tblwrap{max-height:none}}
 </style>
 </head>
@@ -296,6 +315,10 @@ tr[data-c]{cursor:pointer}
   </div>
 
   <div class="tiles" id="tiles" style="margin:6px 0 0"></div>
+
+  <p class="src" style="margin:16px 2px 0">Elaborado por <b>Sixto Siliuto Rueda</b> ·
+    <a href="https://www.linkedin.com/in/sixto-siliuto-rueda-99270934/" target="_blank" rel="noopener">LinkedIn</a> ·
+    <a href="https://github.com/Siliutors/infografia-sistema-electrico" target="_blank" rel="noopener">código y datos en GitHub</a></p>
 </div>
 <div id="tip"></div>
 <script>
@@ -388,7 +411,7 @@ function applyZoom() {
   const nlist = Object.values(DATA.nodes);
   nds.forEach((el, i) => { if (nlist[i]) el.setAttribute('transform', `translate(${nlist[i][0]},${nlist[i][1]}) scale(${mk.toFixed(3)})`); });
   renderUFmarks();
-  renderLabels();
+  if (!pinching) renderLabels();   /* durante el pellizco se re-renderizan al soltar */
 }
 function zoomBy(f, px, py) {
   if (px === undefined) { px = VBW / 2; py = VBH / 2; }
@@ -405,11 +428,43 @@ map.addEventListener('wheel', e => {
   zoomBy(e.deltaY < 0 ? 1.25 : 0.8, px, py);
 }, {passive: false});
 let panS = null;
+/* táctil: un dedo deja pasar el scroll de la página (touch-action:pan-y);
+   dos dedos panean y hacen zoom de pellizco sobre el mapa */
+const tpts = new Map(); let pinching = false;
+const stopTouch = e => { if (e.touches.length >= 2) e.preventDefault(); };
+map.addEventListener('touchstart', stopTouch, {passive: false});
+map.addEventListener('touchmove', stopTouch, {passive: false});
 map.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') {
+    tpts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    map.setPointerCapture(e.pointerId); panS = null;
+    return;
+  }
   if (e.button !== 0) return;
   panS = {x: e.clientX, y: e.clientY, moved: false}; map.setPointerCapture(e.pointerId);
 });
 map.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') {
+    const p = tpts.get(e.pointerId);
+    if (!p) return;
+    if (tpts.size === 2) {
+      const o = [...tpts.entries()].find(([id]) => id !== e.pointerId)[1];
+      const rect = map.getBoundingClientRect(), sx = VBW / rect.width, sy = VBH / rect.height;
+      const d0 = Math.hypot(p.x - o.x, p.y - o.y), d1 = Math.hypot(e.clientX - o.x, e.clientY - o.y);
+      const mx = (e.clientX + o.x) / 2, my = (e.clientY + o.y) / 2;
+      pinching = true; didPan = true;
+      ztx += (mx - (p.x + o.x) / 2) * sx; zty += (my - (p.y + o.y) / 2) * sy;
+      if (d0 > 30) {   /* pellizco: zoom alrededor del punto medio */
+        const px = (mx - rect.left) * sx, py = (my - rect.top) * sy;
+        const k2 = Math.min(14, Math.max(1, zk * (d1 / d0)));
+        ztx = px - (px - ztx) * (k2 / zk); zty = py - (py - zty) * (k2 / zk);
+        zk = k2;
+      }
+      applyZoom();
+    }
+    tpts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    return;
+  }
   if (!panS) return;
   const rect = map.getBoundingClientRect();
   const dx = (e.clientX - panS.x) * VBW / rect.width, dy = (e.clientY - panS.y) * VBH / rect.height;
@@ -419,10 +474,17 @@ map.addEventListener('pointermove', e => {
   clampZ();
   VP.setAttribute('transform', `translate(${ztx.toFixed(1)},${zty.toFixed(1)}) scale(${zk.toFixed(3)})`);
 });
-map.addEventListener('pointerup', e => {
+const endPointer = e => {
+  if (e.pointerType === 'touch') {
+    tpts.delete(e.pointerId);
+    if (tpts.size < 2 && pinching) { pinching = false; renderLabels(); }
+    return;
+  }
   if (panS && panS.moved) { didPan = true; renderLabels(); }
   panS = null; map.classList.remove('panning');
-});
+};
+map.addEventListener('pointerup', endPointer);
+map.addEventListener('pointercancel', endPointer);
 document.getElementById('zin').onclick = () => zoomBy(1.4);
 document.getElementById('zout').onclick = () => zoomBy(0.72);
 document.getElementById('zreset').onclick = zoomReset;
