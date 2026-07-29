@@ -28,6 +28,9 @@ enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **
 - **Buscador** de las 2.932 UP de generación por código, nombre, sujeto de mercado, nudo **o unidad física**;
   filtros por tecnología y zona de regulación.
 - Exportación de la vista actual a **PNG** y a **PDF** (impresión).
+- **Exportación a Google My Maps (KML)**: el botón «🗺 Google Maps» descarga un KML con las UP de
+  emplazamiento conocido y estimado y sus unidades físicas, en carpetas separadas, listo para importar
+  en un mapa nuevo de Google My Maps (*Crear un mapa nuevo → Importar*).
 - **Capa de mercados (I90)**: el botón «📊 mercados» descarga desde el navegador el I90 diario de ESIOS
   (archivo 34) para la fecha elegida y anima sobre el mapa la actuación de cada UP por mercado
   (PDBF, PDVP, PHF-1/2/3, PHFC, P48, restricciones técnicas, terciaria mFRR, balance RR, bilaterales,
@@ -61,6 +64,10 @@ reciente de los últimos 6 meses). Solo requiere Python 3.8+ (librería estánda
 | `nudos_transporte.json` | nudos de la red de transporte con capacidad de acceso (CNMC) |
 | `nudos_distribucion.json` | subestaciones de distribución >1 kV con su nudo de afección en transporte (CNMC) |
 | `ree_capacidad.csv` | fichero mensual de capacidad de acceso por nudo (REE) |
+
+`index.html` es un fichero **generado**: para modificar la infografía se editan `template.html` o `build.py`
+y se ejecuta `python -X utf8 build.py`. Las notas de desarrollo (arquitectura interna, reglas del proyecto,
+endpoints de las fuentes y trabajo pendiente) están en [`CONTINUAR.md`](CONTINUAR.md).
 
 ## Fuentes y limitaciones
 
