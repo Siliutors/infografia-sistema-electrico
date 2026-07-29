@@ -419,7 +419,8 @@ for r in sorted(gen, key=lambda r: -mw(r['Potencia máxima MW'])):
     if c in G:
         lat, lon, site, nudo, multi = G[c]
         x, y = XY(lat, lon)
-        row.update(x=x, y=y, site=site, nudo=nudo, multi=(1 if (multi or n_uf > 3) else 0))
+        row.update(x=x, y=y, site=site, nudo=nudo, multi=(1 if (multi or n_uf > 3) else 0),
+                   lat=round(lat, 4), lon=round(lon, 4))   # coords reales para export KML
         located.append(row)
     elif p >= 200 and n_uf > 3:
         distributed.append(row)
@@ -471,7 +472,8 @@ for row in rows:
     lon += (((h >> 12) & 0xFFF) / 4095 - 0.5) * 1.1
     ex, ey = XY(lat, lon)
     pct = round(100 * sum(u[1] for u in locuf) / row['mw']) if row['mw'] else 100
-    row.update(ex=ex, ey=ey, ep=min(pct, 100), est=1)
+    row.update(ex=ex, ey=ey, ep=min(pct, 100), est=1,
+               elat=round(lat, 4), elon=round(lon, 4))   # coords estimadas reales para export KML
     if _tgrid:
         # nudo estimado: subestación de distribución más cercana -> su nudo de afección en la
         # red de transporte (dato CNMC); si un nudo de transporte está aún más cerca, ese

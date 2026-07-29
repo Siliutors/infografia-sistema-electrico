@@ -195,6 +195,7 @@ tr[data-c]{cursor:pointer}
           <button id="zmkt" title="Cargar el I90 diario de ESIOS y visualizar la actuación de cada UP por mercado y periodo">📊 mercados</button>
           <button id="expng" title="Descargar la vista actual del mapa como imagen PNG">🖼 PNG</button>
           <button id="expdf" title="Exportar a PDF mediante el diálogo de impresión">🖨 PDF</button>
+          <button id="exkml" title="Descargar un KML con las localizaciones de las UPs y sus unidades físicas (UF) e importarlo en Google My Maps (Crear un mapa nuevo → Importar)">🗺 Google Maps</button>
         </div>
         <svg id="map" viewBox="0 0 __W__ __H__" role="img" aria-label="Mapa esquemático de España con unidades de programación y red de transporte">
           <rect class="mapbg" x="0" y="0" width="__W__" height="__H__" rx="8"/>
@@ -947,6 +948,73 @@ document.getElementById('expng').onclick = () => {
     });
   };
   img.src = url;
+};
+
+/* ---- exportación a Google My Maps (KML) ---- */
+document.getElementById('exkml').onclick = () => {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>'"]/g,
+    c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'}[c]));
+  const pm = (name, lon, lat, desc) =>
+    `<Placemark><name>${esc(name)}</name><description>${esc(desc)}</description>` +
+    `<Point><coordinates>${lon},${lat},0</coordinates></Point></Placemark>`;
+  // Las UF no tienen coordenada pública propia: se sitúan en la posición de su UP
+  // (real si es curada; estimada si es centroide) con un jitter determinista para
+  // separarlas y poder clicarlas individualmente.
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const J = 0.02;
+  const jit = seed => { const h = hash(seed); return [((h & 0xffff) / 0xffff - 0.5) * 2 * J, (((h >>> 16) & 0xffff) / 0xffff - 0.5) * 2 * J]; };
+  // reparte los placemarks en carpetas <= 1800 (Google My Maps limita a 2000/capa)
+  const folders = (base, arr, chunk = 1800) => {
+    if (!arr.length) return `<Folder><name>${esc(base + ' (0)')}</name></Folder>`;
+    if (arr.length <= chunk) return `<Folder><name>${esc(base + ' (' + arr.length + ')')}</name>${arr.join('')}</Folder>`;
+    let out = '';
+    for (let i = 0; i < arr.length; i += chunk)
+      out += `<Folder><name>${esc(base + ' · parte ' + (i / chunk + 1) + ' (' + Math.min(chunk, arr.length - i) + ')')}</name>${arr.slice(i, i + chunk).join('')}</Folder>`;
+    return out;
+  };
+  // excluye estimadas que caen en el inset de Canarias (artefactos del emparejado
+  // difuso de CCAA; la infografía no tiene UPs de mercado en Canarias, y su posición
+  // trasladada al inset no es una coordenada geográfica real)
+  const inCanariasInset = (la, lo) => la >= 35.3 && la <= 37.75 && lo >= -13.8 && lo <= -8.6;
+  const knownUP = [], estUP = [], knownUF = [], estUF = [];
+  rows.forEach(r => {
+    const tech = NAME[r.t] || '';
+    const addUFs = (bag, lat, lon, basis) => (r.ufs || []).forEach((u, k) => {
+      const [dla, dlo] = jit(r.c + '|' + k + '|' + u[0]);
+      bag.push(pm(`${u[0]} · UF de ${r.c}`, (lon + dlo).toFixed(5), (lat + dla).toFixed(5),
+        `Unidad física de la UP ${r.c} (${r.d})\nTecnología: ${NAME[u[3]] || ''}\nPotencia: ${u[1]} MW\n${basis}`));
+    });
+    if (r.lat != null) {                       // UP con emplazamiento conocido (curado)
+      knownUP.push(pm(`${r.c} · ${r.d}`, r.lon, r.lat,
+        `${r.d}\nTecnología: ${tech}\nPotencia: ${r.mw} MW` +
+        (r.smn || r.sm ? `\nSujeto de mercado: ${r.smn || r.sm}` : '') +
+        (r.site ? `\nEmplazamiento: ${r.site}` : '') +
+        (r.nudo ? `\nNudo de conexión: ${r.nudo}` : '')));
+      addUFs(knownUF, r.lat, r.lon, 'Ubicación: en el emplazamiento de su UP (jitter para separarlas).');
+    } else if (r.elat != null && r.mw >= 10 && r.ep >= 25 && !inCanariasInset(r.elat, r.elon)) {  // igual criterio que el mapa
+      estUP.push(pm(`${r.c} · ${r.d} (ubicación estimada)`, r.elon, r.elat,
+        `${r.d}\n⚠ UBICACIÓN ESTIMADA (centroide de sus unidades físicas por comunidad; ` +
+        `${r.ep}% de la potencia identificada). No es el emplazamiento real.\n` +
+        `Tecnología: ${tech}\nPotencia: ${r.mw} MW` +
+        (r.en ? `\nNudo de transporte estimado: ${r.en}` : '')));
+      addUFs(estUF, r.elat, r.elon, '⚠ Ubicación estimada (centroide de su UP; no es el emplazamiento real).');
+    }
+  });
+  const fecha = DATA.fecha || '';
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<kml xmlns="http://www.opengis.net/kml/2.2"><Document>` +
+    `<name>${esc('Localizaciones del sistema eléctrico español (' + fecha + ')')}</name>` +
+    folders('UPs · emplazamiento conocido', knownUP) +
+    folders('UPs · ubicación estimada', estUP) +
+    folders('UF · en UP con emplazamiento conocido', knownUF) +
+    folders('UF · en UP con ubicación estimada', estUF) +
+    `</Document></kml>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'}));
+  a.download = 'localizaciones_sistema_electrico_' + fecha.split(' ')[0] + '.kml';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  // abre Google My Maps para importar el KML descargado (Crear un mapa nuevo → Importar)
+  window.open('https://www.google.com/maps/d/', '_blank', 'noopener');
 };
 
 /* inset y anotaciones */
