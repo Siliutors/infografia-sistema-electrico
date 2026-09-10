@@ -81,6 +81,18 @@ svg{display:block;width:100%;height:auto}
 .cnx2{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2;vector-effect:non-scaling-stroke;pointer-events:none}
 .up.msube{stroke:var(--s0);stroke-width:2.4;fill-opacity:.85}
 .up.mbaja{stroke:var(--s5);stroke-width:2.4;fill-opacity:.85}
+/* aro de localización de las UPs que casan con el buscador mientras la capa I90 está activa;
+   discontinuo cuando la UP no tiene programa en el periodo mostrado */
+.qring{fill:none;stroke:var(--ink-1);stroke-width:1.5;pointer-events:none}
+.qring.nod{stroke:var(--ink-2);stroke-dasharray:3 2.5}
+#det-i90{border:1px solid var(--grid);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+#det-i90 h3{margin:0 0 5px;font-size:11px;font-weight:650;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--ink-2)}
+#det-i90 .now{font-size:13px}
+#det-i90 .tblwrap{max-height:180px;margin-top:6px;position:relative}
+#det-i90 tr[data-p]{cursor:pointer}
+#tbl th.mktcol,#tbl td.mktcol{display:none}
+#tbl.mkton th.mktcol,#tbl.mkton td.mktcol{display:table-cell}
 #mktbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:12.5px}
 #mktbar button,#mktbar select,#mktbar input[type=date]{background:var(--surface-1);color:var(--ink-1);
   border:1px solid var(--axis);border-radius:7px;padding:4px 9px;font:12.5px system-ui,sans-serif;cursor:pointer}
@@ -229,6 +241,7 @@ tr[data-c]{cursor:pointer}
           <span class="mut">relleno = tecnología · Ø ∝ |MWh|</span>
           <button id="mexit" title="Cerrar la capa de mercados">✕</button>
           <div id="mstatus" class="mut" style="flex-basis:100%"></div>
+          <div id="mfind" style="flex-basis:100%;display:none"></div>
         </div>
       </div>
 
@@ -324,6 +337,7 @@ tr[data-c]{cursor:pointer}
         <button id="clear" title="Cerrar y limpiar el mapa">✕ cerrar</button>
         <h2 id="det-h">UP seleccionada</h2>
         <div id="det-info" style="font-size:12.5px;margin-bottom:6px"></div>
+        <div id="det-i90" style="display:none;font-size:12.5px"></div>
         <p class="mut" style="margin:0 0 6px" id="det-note"></p>
         <div class="tblwrap" style="max-height:300px">
           <table class="zrt"><thead><tr><th>Unidad física</th><th style="text-align:right">MW</th><th>Comunidad (registro)</th></tr></thead>
@@ -343,7 +357,9 @@ tr[data-c]{cursor:pointer}
         </div>
         <div class="tblwrap">
           <table id="tbl">
-            <thead><tr><th>UP</th><th>Descripción / tecnología</th><th style="text-align:right">MW</th><th>Sujeto</th><th>ZR</th><th style="text-align:right">UF</th></tr></thead>
+            <thead><tr><th>UP</th><th>Descripción / tecnología</th><th style="text-align:right">MW</th>
+              <th class="mktcol" id="th-mkt" style="text-align:right" title="Energía programada de esta UP en el mercado y periodo seleccionados del I90, y su precio cuando el fichero lo publica">I90</th>
+              <th>Sujeto</th><th>ZR</th><th style="text-align:right">UF</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -603,6 +619,7 @@ function applyZoom() {
   document.querySelectorAll('.up').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
   document.querySelectorAll('.multi-ring').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
   document.querySelectorAll('.capnd').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
+  document.querySelectorAll('.qring').forEach(el => el.setAttribute('r', (+el.dataset.r0 * mk).toFixed(2)));
   const nds = document.querySelectorAll('#nodes g');
   const nlist = Object.values(DATA.nodes);
   nds.forEach((el, i) => { if (nlist[i]) el.setAttribute('transform', `translate(${nlist[i][0]},${nlist[i][1]}) scale(${mk.toFixed(3)})`); });
@@ -715,8 +732,8 @@ function renderLabels() {
       }
   };
   const cands = (window.mktData && window.mktItems)
-    ? window.mktItems.map(it => ({r: it.r, x: it.x, y: it.y, r0: Rm(it.v), s: Math.abs(it.v), e: 0,
-        txt: it.u + ' ' + fmtV(it.v)}))
+    ? window.mktItems.map(it => ({r: it.r, x: it.x, y: it.y, r0: it.v ? Rm(it.v) : 5,
+        s: Math.abs(it.v), e: 0, txt: it.lbl}))
     : lblCand;
   let out = '', n = 0;
   for (const c of cands) {
@@ -751,8 +768,17 @@ const MKT_SHEETS = [
   ['02', 'P48 — programa final'], ['03', 'Restricciones técnicas PDBF (↑/↓)'],
   ['08', 'Restricciones en tiempo real (↑/↓)'], ['07', 'Terciaria mFRR (↑/↓)'],
   ['06', 'Energías de balance RR (↑/↓)'], ['27', 'Contratos bilaterales'], ['12', 'Energía indisponible']];
+/* El I90 publica los precios en cuadernos aparte del de la energía asignada: 09 y 10 traen el
+   precio por unidad de programación de las restricciones (PDBF y tiempo real), 30 el precio
+   marginal de la terciaria (común a todas las UPs del redespacho) y 11 el de las energías RR.
+   Los programas (PDBF, PHF, P48, PHFC, bilaterales) no llevan precio en este fichero. */
+const MKT_PRICE = {'03': '09', '08': '10', '07': '30', '06': '11'};
+const MKT_DIMS = ['Redespacho', 'Sentido', 'Unidad de Programación', 'Tipo Oferta', 'Tipo cálculo', 'Signo de Energía'];
 const $m = id => document.getElementById(id);
-var mktZip = null, mktData = null, mktItems = null, mktPer = 1, mktNper = 96, mktPlay = null;
+var mktZip = null, mktData = null, mktItems = null, mktPer = 1, mktNper = 96, mktPlay = null,
+    mktFecha = '', mktName = '', focusSet = null, filterSet = null;
+/* por encima de este número de resultados el mapa se llenaría de aros: solo se atenúa el resto */
+const FOCO_MAX = 60;
 MKT_SHEETS.forEach(([v, t]) => $m('msel').insertAdjacentHTML('beforeend', `<option value="${v}">${t}</option>`));
 /* solo hay datos desde el 01-10-2025: ese día REE cambió el formato del I90 (periodos cuartohorarios) */
 const MKT_MIN = '2025-10-01';
@@ -778,8 +804,10 @@ function mktClear() {
   mktData = mktItems = null; document.getElementById('mkt').innerHTML = '';
   gU.style.opacity = 1; gE.style.opacity = 1;
   $m('mstatus').textContent = MKT_INFO; $m('mper').textContent = '';
+  $m('mfind').style.display = 'none';
   ['mprev', 'mnext', 'mplay', 'mrange'].forEach(x => $m(x).disabled = true);
-  renderLabels();
+  document.getElementById('tbl').classList.remove('mkton');
+  apply(); detI90();
 }
 async function unzip(buf) {
   const dv = new DataView(buf), u8 = new Uint8Array(buf);
@@ -814,6 +842,7 @@ $m('mload').onclick = async () => {
     const r = await fetch(url);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     mktZip = await unzip(await r.arrayBuffer());
+    mktFecha = d;
     $m('msel').disabled = false;
     $m('mstatus').textContent = `I90 de ${d} cargado (${Object.keys(mktZip).length} cuadernos). Elija un mercado.`;
     if ($m('msel').value) mktSelect();
@@ -822,85 +851,368 @@ $m('mload').onclick = async () => {
       ' — el I90 se publica con ~90 días de retraso; pruebe una fecha anterior o compruebe la conexión.';
   }
 };
-function parseSheet(txt) {
+function sheetTxt(id) {
+  const key = mktZip && Object.keys(mktZip).find(k => k.startsWith('I90DIA' + id));
+  return key ? new TextDecoder().decode(mktZip[key]).replace(/^﻿/, '') : null;
+}
+/* localiza en un cuaderno la fila de cabecera, sus columnas de periodo (1..96) y las
+   columnas de dimensión que identifican cada fila (redespacho, sentido, UP…) */
+function gridOf(txt) {
+  if (!txt) return null;
   const lines = txt.split(/\r?\n/);
   let hi = -1, H = null;
-  for (let i = 0; i < Math.min(lines.length, 12); i++)
-    if (lines[i].includes('Unidad de Programación')) { hi = i; H = lines[i].split(';'); break; }
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    const c = lines[i].split(';').map(x => x.trim());
+    if (c.some(x => /^\d{1,3}$/.test(x)) &&
+        (c.includes('Unidad de Programación') || c.includes('Cuarto de Hora del dia'))) { hi = i; H = c; break; }
+  }
   if (hi < 0) return null;
-  const iUP = H.findIndex(c => c.trim() === 'Unidad de Programación');
-  const iS = H.findIndex(c => c.trim() === 'Sentido');
   const pcols = [];
-  H.forEach((c, ix) => { if (/^\d{1,3}$/.test(c.trim())) pcols.push([ix, +c.trim()]); });
+  H.forEach((c, ix) => { if (/^\d{1,3}$/.test(c)) pcols.push([ix, +c]); });
   if (!pcols.length) return null;
-  const nper = Math.max(...pcols.map(p => p[1]));
-  const units = new Map();
-  for (let i = hi + 1; i < lines.length; i++) {
-    const c = lines[i].split(';');
-    const up = (c[iUP] || '').trim();
+  const dims = {};
+  MKT_DIMS.forEach(d => { const ix = H.indexOf(d); if (ix >= 0) dims[d] = ix; });
+  return {lines, hi, dims, pcols, nper: Math.max(...pcols.map(p => p[1]))};
+}
+/* filas de un cuaderno: clave (valores de sus dimensiones) + serie por periodo (NaN = sin valor) */
+function gridRows(g) {
+  const out = [];
+  for (let i = g.hi + 1; i < g.lines.length; i++) {
+    const c = g.lines[i].split(';');
+    if (c.length < 3) continue;
+    const key = {}; let any = false;
+    for (const d in g.dims) { const v = (c[g.dims[d]] || '').trim(); key[d] = v; if (v) any = true; }
+    if (!any) continue;
+    let vals = null;
+    for (const [ix, p] of g.pcols) {
+      const s = c[ix];
+      if (!s || !s.trim()) continue;
+      const v = parseFloat(s.replace(',', '.'));
+      if (!isFinite(v)) continue;
+      if (!vals) vals = new Float64Array(g.nper).fill(NaN);
+      vals[p - 1] = v;
+    }
+    if (vals) out.push({key, vals});
+  }
+  return out;
+}
+/* claves de emparejado energía↔precio, de la más estricta a la más laxa. Nunca se afloja el
+   redespacho ni el sentido: hay filas de energía cuyo redespacho no lleva precio publicado
+   (indisponibilidades, descomposiciones), y aflojar les asignaría el precio de otra fila de la
+   misma UP. En los cuadernos de precio marginal (sin UP) la clave es el redespacho. */
+function priceLevels(eg, pg) {
+  const common = MKT_DIMS.filter(d => d in eg.dims && d in pg.dims);
+  const drop = ds => common.filter(d => !ds.includes(d));
+  const lv = [common];
+  if ('Unidad de Programación' in pg.dims)
+    lv.push(drop(['Tipo cálculo']), drop(['Tipo cálculo', 'Tipo Oferta', 'Signo de Energía']));
+  else
+    lv.push(drop(['Sentido']));   /* el precio marginal va con Sentido «No aplica» */
+  return lv.filter((l, i, a) => l.length && a.findIndex(x => x.join('¦') === l.join('¦')) === i);
+}
+const pkey = (lv, ks, key) => lv + '¦' + ks.map(d => key[d] || '').join('¦');
+/* null = clave que casa con más de una fila de precio (p. ej. dos «Tipo QH» del mismo
+   redespacho): es ambigua y se deja sin precio en vez de tomar una fila al azar */
+function priceIndex(pg, levels) {
+  const map = new Map();
+  for (const row of gridRows(pg))
+    levels.forEach((ks, lv) => {
+      const k = pkey(lv, ks, row.key);
+      if (!map.has(k)) map.set(k, row.vals);
+      else if (map.get(k) !== row.vals) map.set(k, null);
+    });
+  return map;
+}
+/* agrega el cuaderno de energía por UP y periodo: energía neta (para el mapa), desglose
+   subir/bajar y precio medio ponderado por la energía de cada fila cuando hay cuaderno de precios */
+function parseMarket(id) {
+  const eg = gridOf(sheetTxt(id));
+  if (!eg || !('Unidad de Programación' in eg.dims)) return null;
+  const pg = MKT_PRICE[id] ? gridOf(sheetTxt(MKT_PRICE[id])) : null;
+  const levels = pg ? priceLevels(eg, pg) : null;
+  const pidx = pg ? priceIndex(pg, levels) : null;
+  const hasDir = 'Sentido' in eg.dims, nper = eg.nper, units = new Map();
+  let vmax = 0, nPrice = 0;
+  for (const row of gridRows(eg)) {
+    const up = row.key['Unidad de Programación'];
     if (!up) continue;
     /* con columna Sentido el signo lo fija el sentido (los CSV traen las bajadas ya en negativo:
        forzamos -|v| / +|v| para no duplicar el signo); sin Sentido, el valor va firmado tal cual */
-    const dir = iS < 0 ? 0 : ((c[iS] || '').trim().toLowerCase().startsWith('baja') ? -1 : 1);
-    let arr = units.get(up);
-    if (!arr) { arr = new Float64Array(nper); units.set(up, arr); }
-    for (const [ix, p] of pcols) {
-      const s = c[ix];
-      if (!s) continue;
-      const v = parseFloat(s.replace(',', '.'));
-      if (v) arr[p - 1] += dir === 0 ? v : dir * Math.abs(v);
+    const dir = hasDir ? (row.key['Sentido'].toLowerCase().startsWith('baja') ? -1 : 1) : 0;
+    /* se afloja la clave solo mientras ningún nivel encuentre fila; una vez encontrada se usa
+       esa (o se renuncia al precio si resultó ambigua), sin seguir aflojando */
+    let pr = null;
+    if (pidx) for (let lv = 0; lv < levels.length; lv++) {
+      const hit = pidx.get(pkey(lv, levels[lv], row.key));
+      if (hit === undefined) continue;
+      pr = hit;
+      break;
+    }
+    let u = units.get(up);
+    if (!u) { u = {e: new Float64Array(nper), eu: null, ed: null, pu: null, pd: null, wu: null, wd: null}; units.set(up, u); }
+    for (let p = 0; p < nper; p++) {
+      const raw = row.vals[p];
+      if (!isFinite(raw) || !raw) continue;
+      const v = dir === 0 ? raw : dir * Math.abs(raw);
+      u.e[p] += v;
+      if (v > 0) (u.eu || (u.eu = new Float64Array(nper)))[p] += v;
+      else (u.ed || (u.ed = new Float64Array(nper)))[p] += v;
+      const q = pr ? pr[p] : NaN;
+      if (isFinite(q)) {
+        nPrice++;
+        if (v > 0) {
+          (u.pu || (u.pu = new Float64Array(nper)))[p] += v * q;
+          (u.wu || (u.wu = new Float64Array(nper)))[p] += v;
+        } else {
+          (u.pd || (u.pd = new Float64Array(nper)))[p] += -v * q;
+          (u.wd || (u.wd = new Float64Array(nper)))[p] += -v;
+        }
+      }
     }
   }
-  let vmax = 0;
-  units.forEach(a => { for (const v of a) { const av = Math.abs(v); if (av > vmax) vmax = av; } });
-  return {units, nper, vmax};
+  units.forEach(u => {
+    if (u.pu) for (let p = 0; p < nper; p++) u.pu[p] = u.wu[p] ? u.pu[p] / u.wu[p] : NaN;
+    if (u.pd) for (let p = 0; p < nper; p++) u.pd[p] = u.wd[p] ? u.pd[p] / u.wd[p] : NaN;
+    for (const v of u.e) { const av = Math.abs(v); if (av > vmax) vmax = av; }
+  });
+  return {units, nper, vmax, hasDir, nPrice,
+          priceSheet: nPrice ? MKT_PRICE[id] : null,
+          priceUP: !!(pg && 'Unidad de Programación' in pg.dims)};
+}
+/* valores de una UP en un periodo (índice 0..nper-1) */
+function mktAt(u, i) {
+  return {e: u.e[i], eu: u.eu ? u.eu[i] : 0, ed: u.ed ? u.ed[i] : 0,
+          pu: u.pu ? u.pu[i] : NaN, pd: u.pd ? u.pd[i] : NaN};
+}
+/* totales del día de una UP: energía subida/bajada y precio medio ponderado de cada sentido */
+function mktDay(u, nper) {
+  /* wu/wd = energía que tiene precio publicado; si es menor que la total, el importe se queda corto */
+  const t = {eu: 0, ed: 0, pu: NaN, pd: NaN, iu: 0, id: 0, wu: 0, wd: 0, np: 0};
+  for (let p = 0; p < nper; p++) {
+    const a = mktAt(u, p);
+    if (a.e || a.eu || a.ed) t.np++;
+    t.eu += a.eu; t.ed += a.ed;
+    if (isFinite(a.pu) && a.eu) { t.iu += a.eu * a.pu; t.wu += a.eu; }
+    if (isFinite(a.pd) && a.ed) { t.id += -a.ed * a.pd; t.wd += -a.ed; }
+  }
+  if (t.wu) t.pu = t.iu / t.wu;
+  if (t.wd) t.pd = t.id / t.wd;
+  return t;
 }
 function mktSelect() {
   const id = $m('msel').value;
   if (!id || !mktZip) return;
-  const key = Object.keys(mktZip).find(k => k.startsWith('I90DIA' + id));
-  const d = key ? parseSheet(new TextDecoder().decode(mktZip[key]).replace(/^﻿/, '')) : null;
+  const d = parseMarket(id);
   if (!d || !d.vmax) {
     $m('mstatus').textContent = 'Sin datos por UP en ese mercado para esa fecha.';
-    mktData = mktItems = null; document.getElementById('mkt').innerHTML = ''; renderLabels(); return;
+    mktData = mktItems = null; document.getElementById('mkt').innerHTML = '';
+    document.getElementById('tbl').classList.remove('mkton');
+    $m('mfind').style.display = 'none';
+    gU.style.opacity = 1; gE.style.opacity = 1;   /* devuelve la visibilidad a la capa base */
+    apply(); detI90(); return;
   }
-  mktData = d; mktNper = d.nper; $m('mrange').max = d.nper; mktPer = Math.min(mktPer, d.nper);
+  mktData = d; mktNper = d.nper; mktName = $m('msel').selectedOptions[0].textContent;
+  $m('mrange').max = d.nper; mktPer = Math.min(mktPer, d.nper);
   ['mprev', 'mnext', 'mplay', 'mrange'].forEach(x => $m(x).disabled = false);
   gU.style.opacity = .12; gE.style.opacity = .08;
+  document.getElementById('tbl').classList.add('mkton');
   const nUnloc = [...d.units.keys()].filter(u => { const r = byCode[u]; return !r || (r.x === undefined && r.ex === undefined); }).length;
-  $m('mstatus').textContent = `${d.units.size} UPs con datos · máx |valor| por periodo = ${d.vmax.toLocaleString('es-ES', {maximumFractionDigits: 1})} MWh · ${nUnloc} sin posición en el mapa (demanda/comercialización principalmente)`;
-  renderMkt();
+  $m('mstatus').textContent = `${d.units.size} UPs con datos · máx |valor| por periodo = ${d.vmax.toLocaleString('es-ES', {maximumFractionDigits: 1})} MWh · ${nUnloc} sin posición en el mapa (demanda/comercialización principalmente)` +
+    (d.priceSheet ? ` · precios por ${d.priceUP ? 'UP' : 'redespacho (marginal)'} del cuaderno I90DIA${d.priceSheet}`
+                  : ' · este mercado no lleva precio por UP en el I90');
+  apply();   /* recalcula el resaltado del buscador y pinta el mapa (renderMkt) */
 }
 $m('msel').onchange = mktSelect;
 const Rm = v => 3 + 16 * Math.sqrt(Math.abs(v) / mktData.vmax);
-function renderMkt() {
+const fmtQ = v => v.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const fmtP2 = v => v.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const fmtPr = v => fmtP2(v) + ' €/MWh';
+/* conCeldas=false cuando lo llama apply(), que acaba de repintar la tabla del buscador */
+function renderMkt(conCeldas = true) {
   const g = document.getElementById('mkt');
-  if (!mktData) { g.innerHTML = ''; return; }
-  const mk = Math.pow(zk, -0.6), mname = $m('msel').selectedOptions[0].textContent;
+  if (!mktData) { g.innerHTML = ''; mktItems = null; renderLabels(); return; }
+  const mk = Math.pow(zk, -0.6), i = mktPer - 1;
   const items = [];
-  mktData.units.forEach((arr, u) => {
-    const v = arr[mktPer - 1];
+  mktData.units.forEach((u, code) => {
+    const v = u.e[i];
     if (!v) return;
-    const r = byCode[u];
+    const r = byCode[code];
     if (!r) return;
     const x = r.x ?? r.ex, y = r.y ?? r.ey;
     if (x === undefined) return;
-    items.push({u, v, x, y, r});
+    const a = mktAt(u, i);
+    items.push({u: code, v, x, y, r, p: v > 0 ? a.pu : a.pd, a});
   });
   items.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const byItem = new Map(items.map(it => [it.u, it]));
+  const few = !!focusSet;   /* con el buscador filtrado caben los precios en las etiquetas */
   let out = '';
   for (const it of items.slice().reverse()) {
-    const rad = Rm(it.v);
-    out += `<circle class="up mkt ${it.v > 0 ? 'msube' : 'mbaja'}" data-c="${it.u}" data-r0="${rad.toFixed(2)}"
+    const rad = Rm(it.v), pr = isFinite(it.p) ? fmtPr(it.p) : '', a = it.a;
+    /* si sube y baja en el mismo periodo, el círculo muestra el neto y el tooltip el desglose;
+       la etiqueta no lleva precio entonces: el del neto no representaría a los dos sentidos */
+    const det = a.eu && a.ed
+      ? ` [▲ ${fmtQ(a.eu)}${isFinite(a.pu) ? ' a ' + fmtPr(a.pu) : ''} · ▼ ${fmtQ(-a.ed)}${isFinite(a.pd) ? ' a ' + fmtPr(a.pd) : ''}]`
+      : '';
+    it.lbl = `${it.u} ${fmtV(it.v)}` + (few && pr && !det ? ' · ' + pr : '');
+    out += `<circle class="up mkt ${it.v > 0 ? 'msube' : 'mbaja'}${okSetG && !okSetG.has(it.u) ? ' dim' : ''}${
+      it.u === selUPc ? ' sel' : ''}" data-c="${it.u}" data-r0="${rad.toFixed(2)}"
       cx="${it.x}" cy="${it.y}" r="${(rad * mk).toFixed(2)}" fill="${COL[it.r.t]}"
-      data-tip="${it.u} · ${fmtV(it.v)} MWh (${it.v > 0 ? 'sube' : 'baja'}) · ${it.r.tp} · P${mktPer} (${perLabel(mktPer)}) · ${mname}"/>`;
+      data-tip="${it.u} · ${fmtV(it.v)} MWh ${det ? 'neto' : '(' + (it.v > 0 ? 'sube' : 'baja') + ')'}${
+        pr && !det ? ' · ' + pr : ''}${det} · ${it.r.tp} · P${mktPer} (${perLabel(mktPer)}) · ${mktName}"/>`;
   }
-  g.innerHTML = out;
-  mktItems = items;
+  /* aros de las UPs que casan con el buscador (o de la seleccionada): las sitúa en el mapa
+     aunque estén tapadas por el resto de la capa; discontinuo = sin programa en este periodo */
+  const foco = new Set(focusSet || []);
+  if (selUPc) foco.add(selUPc);
+  let rings = '';
+  const off = [];
+  for (const c of foco) {
+    const r = byCode[c];
+    if (!r) continue;
+    const x = r.x ?? r.ex, y = r.y ?? r.ey;
+    if (x === undefined) continue;
+    const it = byItem.get(c);
+    const rad0 = (it ? Rm(it.v) : 5) + 3.5;
+    rings += `<circle class="qring${it ? '' : ' nod'}" data-r0="${rad0.toFixed(2)}" cx="${x}" cy="${y}"
+      r="${(rad0 * mk).toFixed(2)}"/>`;
+    if (!it) off.push({u: c, v: 0, x, y, r, lbl: c + ' · sin programa'});
+  }
+  g.innerHTML = out + rings;
+  /* las buscadas sin programa van primero: son pocas y su etiqueta interesa más que la del resto */
+  mktItems = off.concat(items);
   $m('mper').textContent = `P${mktPer} · ${perLabel(mktPer)}`;
   $m('mrange').value = mktPer;
+  $m('th-mkt').textContent = `I90 P${mktPer}`;
+  if (conCeldas) updMktCells();
+  mktFind(); detI90();
   renderLabels();
 }
+/* resumen de lo que el buscador encuentra en el I90 cargado */
+function mktFind() {
+  const box = $m('mfind');
+  if (!mktData || !filterSet || !filterSet.size) { box.style.display = 'none'; return; }
+  const i = mktPer - 1;
+  let nDia = 0, nProg = 0, nPos = 0;
+  for (const c of filterSet) {
+    const u = mktData.units.get(c);
+    if (!u) continue;
+    nDia++;
+    const r = byCode[c];
+    if (r && (r.x !== undefined || r.ex !== undefined)) nPos++;
+    if (u.e[i]) nProg++;
+  }
+  box.style.display = '';
+  box.innerHTML = `<span class="mut">Buscador:</span> <b>${fmt(filterSet.size)}</b> UP filtradas · ` +
+    `<b>${fmt(nDia)}</b> con datos en ${mktName} el ${mktFecha} · <b>${fmt(nProg)}</b> con programa en P${mktPer} ` +
+    `(${perLabel(mktPer)})<span class="mut"> · ` +
+    (focusSet ? `en el mapa: aro sólido = con programa en el periodo, aro discontinuo = sin programa`
+              : `afine la búsqueda a ${FOCO_MAX} UPs o menos para señalarlas con un aro en el mapa`) +
+    `${nDia > nPos ? ` · ${fmt(nDia - nPos)} sin posición en el mapa` : ''}</span>`;
+}
+/* celda I90 de cada fila del buscador: cantidad del periodo y precio cuando el fichero lo trae */
+function mktCell(c) {
+  const u = mktData && mktData.units.get(c);
+  if (!u) return '<span class="mut">—</span>';
+  const a = mktAt(u, mktPer - 1);
+  if (!a.e && !a.eu && !a.ed) return '<span class="mut">0</span>';
+  const pz = a.e > 0 ? a.pu : a.pd;
+  /* sube y baja a la vez en el mismo periodo: el neto solo no lo contaría bien */
+  if (a.eu && a.ed) return `▲ ${fmtQ(a.eu)}${isFinite(a.pu) ? ` <span class="mut">${fmtP2(a.pu)}</span>` : ''}` +
+    `<div>▼ ${fmtQ(-a.ed)}${isFinite(a.pd) ? ` <span class="mut">${fmtP2(a.pd)}</span>` : ''}</div>`;
+  return fmtV(a.e) + (isFinite(pz) ? `<div class="mut">${fmtPr(pz)}</div>` : '');
+}
+function updMktCells() {
+  if (!mktData) return;
+  tb.querySelectorAll('td.mktcol').forEach(td => td.innerHTML = mktCell(td.parentNode.dataset.c));
+}
+/* datos I90 de la UP seleccionada en el panel de detalle: valor del periodo, totales del día
+   y desglose por periodo con la cantidad y el precio (cuando el cuaderno lo publica) */
+function detI90() {
+  const box = $m('det-i90'), r = lastUFsel;
+  if (!r || !mktData) { box.style.display = 'none'; box.innerHTML = ''; box.dataset.k = ''; return; }
+  box.style.display = '';
+  const cab = `<h3>I90 · ${mktName} · ${mktFecha}</h3>`;
+  const u = mktData.units.get(r.c);
+  if (!u) {
+    box.innerHTML = cab + `<div class="mut">${r.c} no figura en este cuaderno del I90 ese día: ` +
+      `sin programa ni energía asignada en ${mktName}.</div>`;
+    box.dataset.k = '';
+    return;
+  }
+  const nper = mktData.nper, i = mktPer - 1, a = mktAt(u, i), dir = mktData.hasDir;
+  const val = (e, p) => `<b>${fmtQ(Math.abs(e))} MWh</b>` + (isFinite(p) ? ` a <b>${fmtPr(p)}</b>` : '');
+  let now;
+  if (!a.e && !a.eu && !a.ed) now = `<span class="mut">P${mktPer} · ${perLabel(mktPer)} — sin programa en este periodo</span>`;
+  else if (!dir) now = `P${mktPer} · ${perLabel(mktPer)} — ${val(a.e, isFinite(a.pu) ? a.pu : a.pd)}`;
+  else now = `P${mktPer} · ${perLabel(mktPer)} — ` +
+    [a.eu ? '▲ sube ' + val(a.eu, a.pu) : '', a.ed ? '▼ baja ' + val(a.ed, a.pd) : ''].filter(Boolean).join(' · ');
+  /* solo cambia el periodo (p. ej. durante el play): actualiza la línea y la fila resaltada */
+  const clave = r.c + '¦' + $m('msel').value + '¦' + mktFecha;
+  if (box.dataset.k === clave) {
+    box.querySelector('.now').innerHTML = now;
+    box.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel'));
+    const fila = box.querySelector(`tr[data-p="${mktPer}"]`);
+    if (fila) { fila.classList.add('sel'); scrollToRow(box, fila); }
+    return;
+  }
+  box.dataset.k = clave;
+  const t = mktDay(u, nper), sinPos = r.x === undefined && r.ex === undefined;
+  const imp = v => Math.round(v).toLocaleString('es-ES') + ' €';
+  const tot = dir
+    ? [t.eu ? `▲ ${fmtQ(t.eu)} MWh` + (isFinite(t.pu) ? ` · medio ${fmtPr(t.pu)} · ≈ ${imp(t.iu)}` : '') : '',
+       t.ed ? `▼ ${fmtQ(-t.ed)} MWh` + (isFinite(t.pd) ? ` · medio ${fmtPr(t.pd)} · ≈ ${imp(t.id)}` : '') : ''
+      ].filter(Boolean).join(' · ')
+    : `${fmtQ(t.eu + t.ed)} MWh netos`;
+  /* columnas: solo las que la unidad usa ese día */
+  const cU = dir && !!u.eu, cD = dir && !!u.ed, cPU = !!u.pu, cPD = dir && !!u.pd;
+  const th = ['<th>Periodo</th>'];
+  if (!dir) th.push('<th style="text-align:right">MWh</th>');
+  if (cU) th.push('<th style="text-align:right" title="Energía a subir">MWh ▲</th>');
+  if (cD) th.push('<th style="text-align:right" title="Energía a bajar">MWh ▼</th>');
+  if (cPU) th.push(`<th style="text-align:right" title="Precio${dir ? ' de la energía a subir' : ''}">€/MWh${cD ? ' ▲' : ''}</th>`);
+  if (cPD) th.push('<th style="text-align:right" title="Precio de la energía a bajar">€/MWh ▼</th>');
+  let body = '';
+  for (let p = 0; p < nper; p++) {
+    const b = mktAt(u, p);
+    if (!b.e && !b.eu && !b.ed) continue;
+    let tds = `<td>P${p + 1} <span class="mut">${perLabel(p + 1)}</span></td>`;
+    if (!dir) tds += `<td class="num">${fmtV(b.e)}</td>`;
+    if (cU) tds += `<td class="num">${b.eu ? fmtQ(b.eu) : ''}</td>`;
+    if (cD) tds += `<td class="num">${b.ed ? fmtQ(-b.ed) : ''}</td>`;
+    if (cPU) tds += `<td class="num">${isFinite(b.pu) ? fmtP2(b.pu) : (isFinite(b.pd) && !cPD ? fmtP2(b.pd) : '')}</td>`;
+    if (cPD) tds += `<td class="num">${isFinite(b.pd) ? fmtP2(b.pd) : ''}</td>`;
+    body += `<tr data-p="${p + 1}"${p === i ? ' class="sel"' : ''}>${tds}</tr>`;
+  }
+  /* cobertura del precio: parte de la energía puede no tenerlo, y entonces el importe se queda corto */
+  const eTot = t.eu - t.ed, eCon = t.wu + t.wd;
+  const parcial = mktData.priceSheet && eTot > 0 && eCon < eTot * 0.999
+    ? ` Solo ${Math.round(eCon / eTot * 100)} % de la energía del día tiene precio publicado: el importe se refiere a esa parte.` : '';
+  const fuente = mktData.priceSheet
+    ? `Precios del cuaderno I90DIA${mktData.priceSheet}` +
+      (mktData.priceUP ? ' (por unidad de programación), media ponderada por la energía de cada oferta cuando hay varias.'
+                       : ' (precio marginal del redespacho, común a todas las UPs).') +
+      ' El importe es orientativo (energía × precio), no una liquidación.' + parcial
+    : `El I90 no publica precio por unidad para ${mktName}.`;
+  box.innerHTML = cab +
+    `<div class="now">${now}</div>` +
+    `<div class="mut" style="margin-top:2px">Día: ${tot} · programa en ${t.np} de ${nper} periodos` +
+    (sinPos ? ' · <b>sin posición en el mapa</b>' : '') + '</div>' +
+    `<div class="tblwrap"><table class="zrt"><thead><tr>${th.join('')}</tr></thead><tbody>${body}</tbody></table></div>` +
+    `<p class="mut" style="margin:5px 0 0">Clic en un periodo para llevar el mapa a ese cuarto de hora. ${fuente}</p>`;
+  const sel = box.querySelector('tr.sel');
+  if (sel) scrollToRow(box, sel);
+}
+/* centra la fila del periodo dentro de su caja, sin arrastrar el scroll de la página */
+function scrollToRow(box, tr) {
+  const w = box.querySelector('.tblwrap');
+  if (w) w.scrollTop = Math.max(0, tr.offsetTop - w.clientHeight / 2 + tr.offsetHeight / 2);
+}
+$m('det-i90').onclick = ev => {
+  const tr = ev.target.closest('tr[data-p]');
+  if (!tr || !mktData) return;
+  mktPer = +tr.dataset.p; renderMkt();
+};
 function mktStep(d) {
   if (!mktData) return;
   mktPer = ((mktPer - 1 + d) % mktNper + mktNper) % mktNper + 1;
@@ -1064,12 +1376,29 @@ function apply() {
       s && !r.q.includes(s) && r.uq.includes(s)
         ? `<div class="mut">↳ contiene la UF: <b>${(r.ufs.find(u => u[0].toUpperCase().includes(s)) || [''])[0]}</b></div>` : ''}</td>
     <td class="num">${r.mw.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</td>
+    <td class="num mktcol">${mktData ? mktCell(r.c) : ''}</td>
     <td>${r.sm}<div class="mut">${(r.smn || '').slice(0, 26)}</div></td><td>${r.zr}</td><td class="num">${r.uf}</td></tr>`).join('');
-  cnt.textContent = `${fmt(shown.length)} de ${fmt(rows.length)} UPs` + (shown.length > 500 ? ' (mostrando las 500 mayores — afine la búsqueda)' : '') + ' · 📍 en el mapa · ◈ ubicación estimada · ◇ cartera distribuida';
+  cnt.innerHTML = `${fmt(shown.length)} de ${fmt(rows.length)} UPs` + (shown.length > 500 ? ' (mostrando las 500 mayores — afine la búsqueda)' : '') + ' · 📍 en el mapa · ◈ ubicación estimada · ◇ cartera distribuida' + mktExtra(s);
   const okSet = new Set(shown.map(r => r.c));
-  document.querySelectorAll('.up').forEach(el => el.classList.toggle('dim', !okSet.has(el.dataset.c)));
   okSetG = okSet;
+  /* con un filtro activo y pocos resultados, esas UPs se resaltan con un aro en la capa I90 */
+  const filtrando = !!(s || z || nodeSel || on.size < NAME.length);
+  filterSet = filtrando && shown.length ? okSet : null;
+  focusSet = filterSet && shown.length <= FOCO_MAX ? okSet : null;
+  if (mktData) { renderMkt(false); return; }   /* renderMkt ya aplica el atenuado y repinta etiquetas */
+  document.querySelectorAll('.up').forEach(el => el.classList.toggle('dim', !okSet.has(el.dataset.c)));
   if (typeof renderLabels === 'function' && typeof zk !== 'undefined') renderLabels();
+}
+/* unidades del I90 que casan con la búsqueda pero no son UPs de generación de este listado
+   (demanda, comercialización, bombeo de otros sistemas…): no tienen ficha ni posición */
+function mktExtra(s) {
+  if (!mktData || s.length < 3) return '';
+  const otras = [...mktData.units.keys()].filter(c => c.includes(s) && !byCode[c]);
+  if (!otras.length) return '';
+  const esc = t => t.replace(/[&<>]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[ch]));
+  return `<br><span class="mut">Además, ${fmt(otras.length)} unidad${otras.length > 1 ? 'es' : ''} del I90 ` +
+    `casa${otras.length > 1 ? 'n' : ''} con «${esc(s)}» y no son UPs de generación de este listado ` +
+    `(demanda, comercialización…): ${otras.slice(0, 8).join(', ')}${otras.length > 8 ? '…' : ''}</span>`;
 }
 q.oninput = apply; zrsel.onchange = apply; apply();
 
@@ -1124,7 +1453,7 @@ document.getElementById('map').addEventListener('mousemove', ev => {
 document.getElementById('map').addEventListener('mouseleave', () => { if (!pinned) tip.style.display = 'none'; });
 
 /* selección de UP: panel de detalle + UFs en el mapa */
-let pinned = false, selEl = null;
+let pinned = false, selUPc = null;
 const gUF = document.getElementById('ufmk');
 const det = document.getElementById('detail');
 let lastUFsel = null;
@@ -1149,18 +1478,29 @@ function renderUFmarks() {
   }
   gUF.innerHTML = svg;
 }
-function clearSel() {
+function clearSel(redraw = true) {
   pinned = false; tip.style.display = 'none';
-  if (selEl) { selEl.classList.remove('sel'); selEl = null; }
+  selUPc = null;
+  document.querySelectorAll('.up.sel').forEach(el => el.classList.remove('sel'));
   lastUFsel = null; gUF.innerHTML = ''; det.style.display = 'none';
+  $m('det-i90').style.display = 'none';
   tb.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel'));
+  if (redraw && mktData) renderMkt();   /* quita el aro de la UP que estaba seleccionada */
+}
+/* si el mapa está ampliado y la UP queda fuera de la vista, la centra */
+function ensureVisible(r) {
+  const x = r.x ?? r.ex, y = r.y ?? r.ey;
+  if (x === undefined || zk <= 1) return;
+  const sx = ztx + zk * x, sy = zty + zk * y;
+  if (sx > 20 && sx < VBW - 20 && sy > 20 && sy < VBH - 20) return;
+  ztx = VBW / 2 - zk * x; zty = VBH / 2 - zk * y; applyZoom();
 }
 function selectUP(c) {
-  clearSel();
+  clearSel(false);
   const r = byCode[c]; if (!r) return;
-  /* marcador UP */
-  const el = document.querySelector(`.up[data-c="${c}"]`);
-  if (el) { selEl = el; el.classList.add('sel'); }
+  /* marcador UP (base y, si está activa, el de la capa de mercados) */
+  selUPc = c;
+  document.querySelectorAll(`.up[data-c="${c}"]`).forEach(el => el.classList.add('sel'));
   /* fila de la tabla */
   const row = tb.querySelector(`tr[data-c="${c}"]`);
   if (row) { row.classList.add('sel'); row.scrollIntoView({block: 'nearest'}); }
@@ -1185,9 +1525,11 @@ function selectUP(c) {
     `<tr><td><span class="tag" style="background:${COL[u[3]]}"></span>${u[0]}</td>
      <td class="num">${u[1].toLocaleString('es-ES', {minimumFractionDigits: 1})}</td>
      <td>${u[2] >= 0 ? DATA.canames[u[2]] + ' ◆' : '<span class="mut">sin identificar</span>'}</td></tr>`).join('');
+  /* con la capa I90 activa: aro de localización en el mapa y datos de cantidad y precio */
+  if (mktData) { renderMkt(); ensureVisible(r); }
   det.scrollIntoView({block: 'nearest', behavior: 'smooth'});
 }
-document.getElementById('clear').onclick = clearSel;
+document.getElementById('clear').onclick = () => clearSel();
 document.getElementById('map').addEventListener('click', ev => {
   if (didPan) { didPan = false; return; }
   const t = ev.target;

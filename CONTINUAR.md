@@ -138,7 +138,9 @@ Otras claves de `DATA`: `located`, `dist`, `groups`, `tot`, `zr`, `szr`, `enl` (
 **Frontend (`template.html`)** — funciones principales: `setTheme`, `renderEst`, `renderCap`/`capTip`,
 `selectNode`/`napply` (tabla de nudos), `applyZoom`/`zoomBy`/`clampZ` (zoom con contra-escalado de
 marcadores), `renderLabels` (etiquetas anticolisión), `apply` (buscador y filtros), `selectUP`/`renderUFmarks`
-(panel de detalle), `mktSelect`/`renderMkt`/`mktStep`/`parseSheet` (capa I90), export PNG/PDF/KML.
+(panel de detalle), `mktSelect`/`renderMkt`/`mktStep` (capa I90), `gridOf`/`gridRows`/`parseMarket`
+(lectura de los cuadernos del I90 y emparejado energía↔precio), `mktCell`/`mktFind`/`detI90`
+(cantidad y precio de la UP en el buscador y en el panel), export PNG/PDF/KML.
 Breakpoints: 1100 px (una columna) y 720 px (móvil), más `@media (pointer:coarse)` para gestos táctiles.
 
 ## 5. Reglas del proyecto (respetarlas al modificar)
@@ -155,17 +157,27 @@ Breakpoints: 1100 px (una columna) y 720 px (móvil), más `@media (pointer:coar
 5. **I90 solo desde 01-10-2025**: ese día REE cambió a periodos cuartohorarios; el parser no entiende el
    formato anterior. La descarga es del navegador (`api.esios.ree.es/archives/34/download`, CORS `*`) y el
    ZIP se descomprime en JS con `DecompressionStream('deflate-raw')`.
-6. **Coherencia del inset de Canarias**: cualquier punto nuevo en el mapa debe pasar por la misma
+6. **I90: la energía y el precio van en cuadernos distintos** (`MKT_PRICE` en `template.html`):
+   03→09 y 08→10 (precio **por UP** de las restricciones del PDBF y en tiempo real), 07→30 (precio
+   **marginal** de la terciaria, sin columna de UP: es común a todas las unidades del redespacho) y
+   06→11 (RR; en la práctica vienen siempre vacíos). Cada fila de energía se casa con la de precio por
+   sus dimensiones comunes (`Redespacho`, `Sentido`, `Unidad de Programación`, `Tipo Oferta`,
+   `Tipo cálculo`, `Signo de Energía`), aflojando la clave por niveles pero **nunca por debajo de la UP**
+   cuando el cuaderno de precios la trae: si se aflojara, se asignaría el precio de otra unidad. El
+   precio que se muestra por UP y periodo es la **media ponderada por la energía** de sus filas.
+   El cuaderno 12 (energía indisponible) sigue siendo horario (columnas `00-01`…), así que el parser
+   cuartohorario no lo lee: esa opción del combo no pinta nada.
+7. **Coherencia del inset de Canarias**: cualquier punto nuevo en el mapa debe pasar por la misma
    traslación (+7,9 / +4,6). Los puntos del inset se **excluyen** del KML (sus coordenadas de pantalla no
    son geográficas; para el KML se usan `lat/lon` y `elat/elon` reales).
-7. **Google My Maps** admite 2.000 elementos por capa: el KML reparte en carpetas de ≤1.800.
-8. **Nombres de subestación inconsistentes** en las fuentes CNMC (mayúsculas, espacios sobrantes,
+8. **Google My Maps** admite 2.000 elementos por capa: el KML reparte en carpetas de ≤1.800.
+9. **Nombres de subestación inconsistentes** en las fuentes CNMC (mayúsculas, espacios sobrantes,
    `"Guadiana "`): siempre normalizar antes de cruzar con `NODES`.
-9. **Honestidad de los datos**: las limitaciones (asignación UP→nudo no pública, UF solo a nivel de
-   comunidad, red esquemática, advertencia CNMC de que las capacidades no son sumables, aviso de que la
-   herramienta está generada con IA) están escritas tanto en el README como **dentro del propio HTML**.
-   No eliminarlas ni suavizarlas al refactorizar.
-10. **Commits en español**, mensaje descriptivo de una línea + cuerpo explicando el porqué, y línea final
+10. **Honestidad de los datos**: las limitaciones (asignación UP→nudo no pública, UF solo a nivel de
+    comunidad, red esquemática, advertencia CNMC de que las capacidades no son sumables, aviso de que la
+    herramienta está generada con IA) están escritas tanto en el README como **dentro del propio HTML**.
+    No eliminarlas ni suavizarlas al refactorizar.
+11. **Commits en español**, mensaje descriptivo de una línea + cuerpo explicando el porqué, y línea final
     `Co-Authored-By: Claude <...>`. Identidad git: `Siliutors` / `sixtoo@hotmail.es`.
 
 ## 6. Fuentes de datos (endpoints exactos)

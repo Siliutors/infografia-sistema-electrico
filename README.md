@@ -39,6 +39,17 @@ enlaces HVDC), los **nudos** de conexión, las **zonas de regulación** y las **
   El I90 se publica con ~90 días de retraso. Solo admite fechas **desde el 01-10-2025**: ese día
   Red Eléctrica cambió el formato del fichero (periodos cuartohorarios) y la herramienta no
   interpreta el formato anterior.
+- **Buscador enlazado con el I90**: con un I90 cargado, al filtrar en el buscador de unidades
+  las UP encontradas se señalan en el mapa con un aro —**sólido** si tienen programa en el mercado y
+  periodo mostrados, **discontinuo** si no— y el resto de la capa se atenúa; la barra de mercados
+  resume cuántas de las filtradas tienen datos ese día y programa en el periodo. La tabla del buscador
+  añade una columna con la **cantidad (MWh)** de cada UP en el periodo y su **precio (€/MWh)** cuando el
+  I90 lo publica, y el panel de detalle de la UP muestra el valor del periodo, los totales del día
+  (energía subida/bajada, precio medio ponderado e importe orientativo) y el desglose por cuarto de
+  hora, con clic para llevar el mapa a ese periodo. Los precios salen de los cuadernos que el I90
+  publica aparte: `I90DIA09` y `I90DIA10` (por UP, restricciones del PDBF y en tiempo real),
+  `I90DIA30` (precio marginal de la terciaria) y `I90DIA11` (energías RR). Los programas (PDBF, PHF,
+  P48, PHFC, bilaterales) no llevan precio en este fichero.
 - Paneles de zonas de regulación, carteras distribuidas y enlace Península–Baleares (Rómulo).
 
 ## Actualizar los datos
